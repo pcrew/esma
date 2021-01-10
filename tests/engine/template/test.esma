@@ -1,0 +1,17 @@
+
+states {
+	work;
+	idle;
+};
+
+trans {
+	init -> idle: 0;
+	idle -> work: 0;
+
+	work -> self: tick_0: 1000ms;
+	work -> self: data_1: ESMA_POLLIN;
+	work -> self: data_2: ESMA_POLLOUT;
+	work -> self: data_3: ESMA_POLLHUP;
+	work -> self: data_4: ESMA_POLLERR;
+	work -> self: sign_0: SIGINT;
+};

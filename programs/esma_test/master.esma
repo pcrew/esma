@@ -1,0 +1,20 @@
+
+states {
+	work;
+};
+
+trans {
+	init ->	work: 0;
+	init -> fini: 3;
+
+	work -> self: tick_0: 400ms: ESMA_TM_PERIODIC;
+	work -> fini: tick_3: 10000s: ESMA_TM_ONESHOT;
+
+	work -> self: sign_0: SIGUSR1;
+	work -> self: sign_1: SIGUSR2;
+
+	work -> self: data_0: ESMA_POLLIN;
+	work -> self: data_1: ESMA_POLLHUP;
+
+	work -> fini: 3;
+};

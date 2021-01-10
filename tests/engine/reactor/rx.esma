@@ -1,0 +1,14 @@
+
+states = {
+	idle;
+	wait;
+};
+
+trans = {
+	init -> idle:	rx_init_to_idle:	0;
+	work -> self:	rx_work_read_done:	1;
+	work -> self:	rx_work_read_timeout:	2;
+	work -> self:	rx_work_read_failed:	3;
+
+	work -> idle:	rx_work_to_idle:	0;
+};

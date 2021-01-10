@@ -1,0 +1,29 @@
+
+states {
+	idle;
+	recv;
+	send;
+	done;
+};
+
+trans {
+	init ->	idle: 0;
+	init -> fini: 3;
+
+	idle -> self: 1;
+	idle -> recv: 0;
+
+	recv -> self: tick_0: 10s: ESMA_TM_ONESHOT;
+	recv -> self: data_0: ESMA_POLLIN;
+	recv -> self: data_1: ESMA_POLLERR;
+	recv -> send: 0;
+	recv -> done: 1;
+
+	send -> self: tick_0: 10s: ESMA_TM_ONESHOT;
+	send -> self: data_0: ESMA_POLLOUT;
+	send -> self: data_1: ESMA_POLLERR;
+	send -> recv: 0;
+	send -> done: 1;
+
+	done -> idle: 0;
+};
