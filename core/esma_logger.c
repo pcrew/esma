@@ -27,7 +27,7 @@ struct esma_log_info esma_log_info[] = {
 		.error = "SYS: ",
 	},
 	[ESMA_LOG_INF] = {
-		.color = "\x1B[32m",	/* white	*/
+		.color = "\x1B[32m",	/* green	*/
 		.error = "INF: ",
 	},
 	[ESMA_LOG_FTL] = {

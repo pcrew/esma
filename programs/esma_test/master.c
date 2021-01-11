@@ -31,14 +31,14 @@ static int __master_init(struct esma *master)
 
 	mi = esma_malloc(sizeof(struct master_info));
 	if (NULL == mi) {
-		esma_user_log_nrm("%s()/%s - can't allocae memory for data\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - can't allocae memory for data\n", __func__, master->name);
 		goto __fail;
 	}
 
 	mi->tick_0 = esma_get_channel(master, "work", 0, ESMA_CH_TICK);
 	mi->tick_1 = esma_get_channel(master, "work", 1, ESMA_CH_TICK);
 	if (NULL == mi->tick_0 || NULL == mi->tick_1) {
-		esma_user_log_nrm("%s()/%s - can't get channels\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - can't get channels\n", __func__, master->name);
 		exit(1);
 	}
 
@@ -64,31 +64,31 @@ static int __master_init_socket(struct esma *master)
 
 	err = esma_socket_init(&mi->socket);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - esma_socket_init(): failed\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - esma_socket_init(): failed\n", __func__, master->name);
 		goto __fail;
 	}
 
 	err = esma_socket_create(&mi->socket, AF_INET);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - esma_socket_create(): failed\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - esma_socket_create(): failed\n", __func__, master->name);
 		goto __fail;
 	}
 
 	err = esma_socket_reset(&mi->socket);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - esma_socket_reset(): failed\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - esma_socket_reset(): failed\n", __func__, master->name);
 		goto __fail;
 	}
 
 	err = esma_socket_bind(&mi->socket, 1771, NULL);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - esma_socket_bind(1771): failed\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - esma_socket_bind(1771): failed\n", __func__, master->name);
 		goto __fail;
 	}
 
 	err = esma_socket_listen(&mi->socket, 128);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - esma_socket_listen(): failed\n", __func__, master->name);
+		esma_user_log_err("%s()/%s - esma_socket_listen(): failed\n", __func__, master->name);
 		goto __fail;
 	}
 
@@ -118,8 +118,10 @@ static int __master_init_slaves(struct esma *master)
 
 	#define NSLAVES 8
 	err = esma_objpool_init(&mi->slaves, NSLAVES, 0, 0);
-	if (err)
+	if (err) {
+		esma_user_log_err("%s()/%s - esma_objpool_init('slaves'): failed\n", __func__, master->name);
 		goto __fail;
+	}
 
 	for (int i = 0; i < NSLAVES; i++) {
 		struct esma *slave = NULL;
@@ -127,19 +129,24 @@ static int __master_init_slaves(struct esma *master)
 		   int err;
 
 		slave = esma_malloc(sizeof(struct esma));
-		if (NULL == slave)
+		if (NULL == slave) {
+			esma_user_log_err("%s()/%s - esma_malloc('slave'): failed\n", __func__, master->name);
 			goto __fail;
-
+		}
 
 		err = esma_objpool_put(&mi->slaves, slave);
-		if (NULL == slave)
+		if (NULL == slave) {
+			esma_user_log_err("%s()/%s - esma_objpool_put('slaves'): failed\n", __func__, master->name);
 			goto __fail;
+		}
 
 		sprintf(name, "slave_%d", i);
 
 		err = esma_init(slave, name, &slave_tmpl, 0);
-		if (err)
+		if (err) {
+			esma_user_log_err("%s()/%s - esma_init(slave: '%s'): failed\n", __func__, master->name, name);
 			goto __fail;
+		}
 
 		esma_run(slave, &mi->slaves);
 	}
@@ -147,8 +154,7 @@ static int __master_init_slaves(struct esma *master)
 	return 0;
 
 __fail:
-	esma_user_log_nrm("%s()/%s - have fail\n", __func__, master->name);
-	exit(1);
+	return 1;
 }
 
 int master_init_enter(__unbox__)
@@ -157,37 +163,29 @@ int master_init_enter(__unbox__)
 
 	err = __master_init(me);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - master_init(): failed\n", __func__, me->name);
+		esma_user_log_err("%s()/%s - master_init(): failed\n", __func__, me->name);
 		goto __fini;
 	}
 
 	err = __master_init_socket(me);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - master_init_socket(): failed\n", __func__, me->name);
+		esma_user_log_err("%s()/%s - master_init_socket(): failed\n", __func__, me->name);
 		goto __fini;
 	}
 
 	err = __master_init_slaves(me);
 	if (err) {
-		esma_user_log_nrm("%s()/%s - master_init_slaves(): failed\n", __func__, me->name);
+		esma_user_log_err("%s()/%s - master_init_slaves(): failed\n", __func__, me->name);
 		goto __fini;
 	}
 
 	esma_user_log_nrm("%s()/%s - successfuly inited\n", __func__, me->name);
 
-	esma_user_log_dbg("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_wrn("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_err("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_sys("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_inf("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_ftl("%s()/%s - hello!\n", __func__, me->name);
-	esma_user_log_nrm("%s()/%s - hello!\n", __func__, me->name);
-
 	esma_msg(me, me, NULL, 0);
 	return 0;
 
 __fini:
-	esma_user_log_nrm("%s()/%s - init failed\n", __func__, me->name);
+	esma_user_log_ftl("%s()/%s - can't start\n", __func__, me->name);
 	esma_msg(me, me, NULL, 3);
 	return 0;
 }
@@ -207,7 +205,7 @@ int master_fini_enter(__unbox__)
 int master_fini_leave(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
-	exit(0);
+	return 1;
 }
 
 int master_work_enter(__unbox__)

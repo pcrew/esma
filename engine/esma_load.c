@@ -2,6 +2,7 @@
 #include "esma_load.h"
 
 #include "core/esma_array.h"
+#include "core/esma_alloc.h"
 #include "core/esma_logger.h"
 
 #include "utils/load_tool.h"

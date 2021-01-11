@@ -22,19 +22,10 @@
 #include "esma_engine_common.h"
 #include "esma_engine_dispatcher.h"
 
-struct reactor *reactor;
-
 static int ngn_cap = 0;
 static struct esma_array engines;
 
-#define MQUEUE_LOCK
-#define MQUEUE_UNLOCK
-
-#if 0
-#define DBG_MSG()		printf("%s() - %d\n", __func__, __LINE__);
-#else
-#define DBG_MSG()
-#endif
+static struct reactor *reactor;
 
 int esma_engine_set_number_of_engines(int cap)
 {
@@ -319,6 +310,8 @@ int esma_engine_exec(u32 ngn_id)
 			break;
 
 		ret = esma_engine_dispatcher_send(msg);
+		if (ret)
+			break;
 	}
 
 	return ret;
@@ -417,7 +410,7 @@ void esma_engine_mod_io_channel(struct esma *esma, u32 events, int action)
 int esma_engine_mod_channel(struct esma_channel *ch, u32 events)
 {
 	if (NULL == ch)
-		return 0;
+		return 1;
 
 	return reactor->mod(ch->fd, ch, events);
 }
@@ -425,7 +418,7 @@ int esma_engine_mod_channel(struct esma_channel *ch, u32 events)
 int esma_engine_arm_tick_channel(struct esma_channel *ch)
 {
 	if (NULL == ch)
-		return 0;
+		return 1;
 
 	return reactor->arm_timerfd(ch->fd, ch->info.tick.interval_msec, ch->info.tick.periodic);
 }
@@ -433,7 +426,7 @@ int esma_engine_arm_tick_channel(struct esma_channel *ch)
 int esma_engine_disarm_tick_channel(struct esma_channel *ch)
 {
 	if (NULL == ch)
-		return 0;
+		return 1;
 
 	return reactor->disarm_timerfd(ch->fd);
 }

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
 	esma_dbuf_set(&master_tmpl_dbuf, master_tmpl);
 
-	esma_logger_set_log_level(ESMA_LOG_WRN);
+	esma_logger_set_log_level(ESMA_LOG_DBG);
 	esma_logger_set_log_flags(LOGGING_FLAGS);
 
 	esma_engine_set_number_of_engines(1);
@@ -60,7 +60,6 @@ int main(int argc, char **argv)
 	err = esma_template_init(&tmpl, "master");
 	if (err) {
 		esma_user_log_ftl("esma_template_init('master')... failed\n", "");
-		printf("failed\n");
 		return 1;
 	}
 	esma_user_log_nrm("esma_template_init('master')... ok\n", "");

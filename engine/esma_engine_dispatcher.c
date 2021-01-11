@@ -15,8 +15,6 @@
 #include "common/compiler.h"
 #include "common/macro_magic.h"
 
-struct reactor *reactor;
-
 static int __read_tick(struct esma_channel *ch)
 {
 	u64 res;
@@ -229,7 +227,8 @@ __send_msg:
 	/* Moore section enter */
 	err = __stop_channels(state);
 	if (err) {
-		esma_dispatcher_log_ftl("%s()/%s - __stop_channels('%s'): failed \n", __func__, dst->name, state->name);
+		esma_dispatcher_log_ftl("%s()/%s - __stop_channels('%s'): failed \n",
+				__func__, dst->name, state->name);
 		goto __fail;
 	}
 
@@ -237,6 +236,7 @@ __send_msg:
 	if (err) {
 		goto __fail;
 	}
+
 	dst->current_state = trans->next_state;
 	state = dst->current_state;
 
@@ -248,7 +248,7 @@ __send_msg:
 		goto __fail;
 	}
 
-	/* only for fini state */
+	/* only for fini state; need to optimize */
 	if (unlikely(!strcmp(state->name, "fini"))) {
 		err = state->leave(src, dst, ptr);
 		if (err) {
@@ -261,7 +261,8 @@ __send_msg:
 
 	err = __start_channels(state);
 	if (err) {
-		esma_dispatcher_log_ftl("%s()/%s - __start_channels('%s'): failed\n", __func__, dst->name, state->name);
+		esma_dispatcher_log_ftl("%s()/%s - __start_channels('%s'): failed\n",
+				__func__, dst->name, state->name);
 		goto __fail;
 	}
 	/* Moore section leave */
@@ -272,6 +273,5 @@ __finish:
 	return 1;
 
 __fail:
-	printf("%s() - have fails\n", __func__);
 	return 1;
 }

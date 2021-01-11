@@ -48,11 +48,6 @@ void *esma_memalign(u32 alignment, u32 size)
 	return data;
 }
 
-void *esma_alloca(u32 size)
-{
-	return alloca(size);
-}
-
 void esma_free(void *data)
 {
 	free(data);

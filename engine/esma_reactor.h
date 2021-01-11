@@ -25,6 +25,4 @@ api_declaration(reactor) {
 	void (*wait)();
 };
 
-extern struct reactor *reactor;
-
 #endif

@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -28,11 +29,15 @@ int slave_init_enter(__unbox__)
 
 	si = esma_malloc(sizeof(struct slave_info));
 	if (NULL == si) {
+		esma_user_log_err("%s()/%s - esma_malloc('slave_info'): failed\n", __func__, me->name);
 		goto __fini;
 	}
 
-	err = esma_dbuf_init(&si->dbuf, 1024);
+#define DBYTES	1024
+	err = esma_dbuf_init(&si->dbuf, DBYTES);
 	if (err) {
+		esma_user_log_err("%s()/%s - esma_dbuf_init('%ld' bytes): failed\n", 
+				__func__, me->name, DBYTES);
 		goto __fini;
 	}
 	esma_socket_init(&si->socket);
@@ -81,20 +86,25 @@ int slave_idle_1(__unbox__)
 	   int err;
 
 	if (NULL == dptr) {
-		esma_user_log_ftl("%s()/%s dptr from %s is NULL\n", __func__, me->name, from->name);
-		exit(1);
+		esma_user_log_err("%s()/%s dptr from %s is NULL\n", __func__, me->name, from->name);
+		goto __done;
 	}
 
 	err = esma_socket_accept(&si->socket, server);
 	if (err) {
-		esma_user_log_ftl("%s()/%s - can't accept socket\n", me->name, __func__);
-		exit(1);
+		esma_user_log_err("%s()/%s - can't accept socket\n", me->name, __func__);
+		goto __done;
 	}
 
 	esma_engine_init_io_channel(me, si->socket.fd);
 
 	esma_user_log_nrm("%s()/%s - start working\n", __func__, me->name);
 	esma_msg(me, me, NULL, 0);
+	return 0;
+
+__done:
+	esma_user_log_nrm("%s()/%s - some error; goto done\n", __func__, me->name);
+	esma_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -112,7 +122,7 @@ int slave_recv_enter(__unbox__)
 	esma_dbuf_clear(dbuf);
 
 	esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
-	esma_user_log_nrm("%s()/%s - start receiving; fd: %d\n", __func__, me->name, me->io_channel.fd);
+	esma_user_log_nrm("%s()/%s - start receiving from fd '%d'\n", __func__, me->name, me->io_channel.fd);
 	return 0;
 }
 
@@ -131,41 +141,42 @@ int slave_recv_data_0(__unbox__)
 	   u32 n;
 
 	if (0 == ba) {	/* connection close */
+		esma_user_log_inf("%s()/%s - connection close\n", __func__, me->name);
 		goto __done;
 	}
 
 	if (ba > dbuf->len) {
 		int err = esma_dbuf_expand(dbuf, ba);
 		if (err) {
-			esma_user_log_ftl("%s()/%s - esma_dbuf_expand(): failed\n", __func__, me->name);
-			exit(1);
+			esma_user_log_err("%s()/%s - esma_dbuf_expand(): failed\n", __func__, me->name);
+			goto __done;
 		}
 	}
 
 	n = read(me->io_channel.fd, dbuf->pos, ba);
-	if (-1 == n) {
-		goto __read_error;
+	if (n < 0) {
+		if (EINTR == errno)
+			return 0;
+
+		esma_user_log_err("%s()/%s - read error\n", __func__, me->name);
+		goto __done;
 	}
 
-	dbuf->pos += n;
 	dbuf->cnt += n;
 
 	if (n == ba) {	/* read all data */
 	        dbuf->pos = dbuf->loc;	/* need for send */
+		esma_user_log_nrm("%s()/%s - all data received\n", __func__, me->name);
 		esma_msg(me, me, NULL, 0);
+		return 0;
 	}
 
+	dbuf->pos += n;
+	
+	esma_user_log_inf("%s()/%s - again\n", __func__, me->name);
 	return 0;
 
 __done:
-
-	esma_user_log_wrn("%s()/%s - connection close\n", __func__, me->name);
-	esma_msg(me, me, NULL, 1);
-	return 0;
-
-__read_error:
-
-	esma_user_log_err("%s()/%s - read error\n", __func__, me->name);
 	esma_msg(me, me, NULL, 1);
 	return 0;
 }
@@ -206,6 +217,9 @@ int slave_send_data_0(__unbox__)
 	n = write(si->socket.fd, dbuf->loc, dbuf->cnt);
 
 	if (n < 0) {
+		if (EINTR == errno)
+			return 0;
+
 		goto __send_error;
 	}
 
@@ -218,11 +232,13 @@ int slave_send_data_0(__unbox__)
 	dbuf->pos += n;
 	dbuf->cnt -= n;
 
+	esma_user_log_inf("%s()/%s - again\n", __func__, me->name);
 	return 0;
 
 __send_error:
 
-	esma_user_log_err("%s()/%s - send error\n", __func__, me->name);
+	esma_dbuf_clear(dbuf);
+	esma_user_log_err("%s()/%s - sending error\n", __func__, me->name);
 	esma_msg(me, me, NULL, 1);
 	return 0;
 }

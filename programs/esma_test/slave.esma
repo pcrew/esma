@@ -12,6 +12,7 @@ trans {
 
 	idle -> self: 1;
 	idle -> recv: 0;
+	idle -> done: 3;
 
 	recv -> self: tick_0: 10s: ESMA_TM_ONESHOT;
 	recv -> self: data_0: ESMA_POLLIN;
