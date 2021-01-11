@@ -5,6 +5,7 @@ SOURCES = $(wildcard *.c)
 OBJECTS = $(SOURCES:.c=.o)
 CFLAGS += -fPIC
 
+OBJECTS += modules/esma_reactor_poll.o
 OBJECTS += modules/esma_reactor_epoll.o
 
 all: $(OBJECTS)
