@@ -279,6 +279,7 @@ int esma_engine_init(u32 ngn_id)
 
 	ei->status = 1;
 
+#if 0
 	if (0 == ngn_id) {
 		reactor = get_api("reactor_epoll");	/* For test */
 		if (NULL == reactor) {
@@ -288,6 +289,17 @@ int esma_engine_init(u32 ngn_id)
 		}
 		reactor->init(32, ei);
 	}
+#else
+	if (0 == ngn_id) {
+		reactor = get_api("reactor_poll");	/* For test */
+		if (NULL == reactor) {
+			esma_engine_log_ftl("%s() - can't get reactor '%s'\n",
+					__func__, "reactor_epoll");
+			exit(1);
+		}
+		reactor->init(32, ei);
+	}
+#endif
 
 	return 0;
 }
@@ -359,7 +371,7 @@ void esma_engine_free_io_channel(struct esma *esma)
 		exit(1);
 
 	if (esma->io_channel.fd > 0)
-		reactor->del(esma->io_channel.fd);
+		reactor->del(esma->io_channel.fd, &esma->io_channel);
 
 	memset(&esma->io_channel, 0, sizeof(struct esma_channel));
 	esma->io_channel.type = ESMA_CH_NONE;

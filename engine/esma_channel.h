@@ -36,6 +36,7 @@ struct esma_channel {
 	int fd;
 	u8 type;	/* ESMA_CH_XXXX */
 	u8 hard;	/* If channel created by config then he is hard channel */
+	int index;	/* for reactor */
 
 	union {
 		struct tick_channel_info tick;

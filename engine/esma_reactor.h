@@ -13,7 +13,7 @@ api_declaration(reactor) {
 	void (*fini)(void);
 
 	 int (*add)(int fd, struct esma_channel *ch);
-	 int (*del)(int fd);
+	 int (*del)(int fd, struct esma_channel *ch);
 	 int (*mod)(int fd, struct esma_channel *ch, u32 events);
 
 	 /* signal section */

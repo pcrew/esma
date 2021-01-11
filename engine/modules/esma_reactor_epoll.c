@@ -75,7 +75,7 @@ static int epoll_reactor__add(int fd, struct esma_channel *ch)
 	return 0;
 }
 
-static int epoll_reactor__del(int fd)
+static int epoll_reactor__del(int fd, __attribute__((unused)) struct esma_channel *ch)
 {
 	struct epoll_event ev = {0};
 	   int ret;
