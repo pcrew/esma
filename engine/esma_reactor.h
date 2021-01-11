@@ -2,6 +2,8 @@
 #ifndef ESMA_REACTOR_H
 #define ESMA_REACTOR_H
 
+#include "esma_channel.h"
+
 #include "common/numeric_types.h"
 #include "common/api.h"
 
@@ -10,9 +12,9 @@ api_declaration(reactor) {
 	void (*init)(u32 nevent, void *tools);
 	void (*fini)(void);
 
-	 int (*add)(int fd, void *dptr);
+	 int (*add)(int fd, struct esma_channel *ch);
 	 int (*del)(int fd);
-	 int (*mod)(int fd, void *dptr, u32 events);
+	 int (*mod)(int fd, struct esma_channel *ch, u32 events);
 
 	 /* signal section */
 	 int (*new_sig)(int sig);	/* returned new sigfd or -1 */

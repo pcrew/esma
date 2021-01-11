@@ -57,13 +57,13 @@ static void epoll_reactor__fini(void)
 	}
 }
 
-static int epoll_reactor__add(int fd, void *dptr)
+static int epoll_reactor__add(int fd, struct esma_channel *ch)
 {
 	struct epoll_event ev = {0};
 	   int err;
 
 	ev.data.fd  = fd;
-	ev.data.ptr = dptr;
+	ev.data.ptr = ch;
 
 	err = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);
 	if (-1 == err) {
@@ -97,7 +97,7 @@ static int epoll_reactor__del(int fd)
 	return 0;
 }
 
-static int epoll_reactor__mod(int fd, void *dptr, u32 events)
+static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 {
 	struct epoll_event ev = {0};
 	   int ret;
@@ -119,7 +119,7 @@ static int epoll_reactor__mod(int fd, void *dptr, u32 events)
 		e |= EPOLLHUP;
 	}
 
-	ev.data.ptr = dptr;
+	ev.data.ptr = ch;
 	ev.events = e;
 
 	ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev);
