@@ -1,10 +1,7 @@
 
 #include <unistd.h>
-#include <signal.h>
 
 #include <sys/epoll.h>
-#include <sys/timerfd.h>
-#include <sys/signalfd.h>
 
 #include "common/compiler.h"
 
@@ -125,73 +122,6 @@ static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 	return 0;
 }
 
-static int epoll_reactor__new_sig(int sig)
-{
-	sigset_t mask;
-	     int fd;
-
-	sigemptyset(&mask);
-	sigaddset(&mask, sig);
-	sigprocmask(SIG_BLOCK, &mask, NULL);
-
-	fd = signalfd(-1, &mask, SFD_CLOEXEC);
-	if (-1 == fd) {
-		esma_engine_log_err("%s() - signalfd(SFD_CLOEXEC): failed\n", __func__);
-		return -1;
-	}
-
-	return fd;
-}
-
-static int epoll_reactor__new_timerfd(void)
-{
-	int fd = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC);
-	if (-1 == fd) {
-		esma_engine_log_err("%s() - timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC): failed\n",
-				__func__);
-		return -1;
-	}
-
-	return fd;
-}
-
-static int epoll_reactor__arm_timerfd(int fd, int interval_msec, int type)
-{
-	struct itimerspec ts = {0};
-	   int ret;
-
-	ts.it_value.tv_sec = interval_msec / 1000;
-	ts.it_value.tv_nsec = (interval_msec % 1000) * 1000000;
-
-	if (ESMA_TM_PERIODIC == type) {
-		ts.it_interval.tv_sec = interval_msec / 1000;
-		ts.it_interval.tv_nsec = (interval_msec % 1000) * 1000000;
-	}
-
-	ret = timerfd_settime(fd, 0, &ts, NULL);
-	if (-1 == ret) {
-		esma_engine_log_err("%s() - timerfd_settime(%d, %d msec): failed\n",
-				__func__, fd, interval_msec);
-		return 1;
-	}
-
-	return 0;
-}
-
-static int epoll_reactor__disarm_timerfd(int fd)
-{
-	struct itimerspec itspec = {0};
-	   int ret;
-
-	ret = timerfd_settime(fd, 0, &itspec, NULL);
-	if (-1 == ret) {
-		esma_engine_log_err("%s() - timerfd_settime(%d, 0): failed\n", __func__, fd);
-		return 1;
-	}
-
-	return 0;
-}
-
 #define MAX_EVENTS 32
 static struct epoll_event events[MAX_EVENTS];
 
@@ -243,12 +173,6 @@ api_definition(reactor, reactor_epoll) {
 	.add = epoll_reactor__add,
 	.del = epoll_reactor__del,
 	.mod = epoll_reactor__mod,
-
-	.new_sig = epoll_reactor__new_sig,
-
-	.   new_timerfd = epoll_reactor__new_timerfd,
-	.   arm_timerfd = epoll_reactor__arm_timerfd,
-	.disarm_timerfd = epoll_reactor__disarm_timerfd,
 
 	.wait = epoll_reactor__wait,
 };
