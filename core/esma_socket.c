@@ -21,7 +21,7 @@ int esma_socket_init(struct esma_socket *sock)
 	sock->type = -1;
 	sock->family = -1;
 
-	memset(&sock->addr, 0, sizeof(union esma_sockaddr));
+	memset(&sock->addr, 0, sizeof(sock->addr));
 	sock->addr_len = -1;
 	return 0;
 }
@@ -76,7 +76,7 @@ int esma_socket_create(struct esma_socket *sock, u16 family)
 		sock->addr_len = sizeof(struct sockaddr_un);
 		break;
 	}
-	memset(&sock->addr, 0, sizeof(union esma_sockaddr));
+	memset(&sock->addr, 0, sizeof(sock->addr));
 
 	sock->family = family;
 	return 0;
@@ -135,10 +135,10 @@ int esma_socket_accept(struct esma_socket *client, struct esma_socket *server)
 {
 	int fd;
 	int err;
-	esma_sockaddr_t sa;
-	socklen_t len = sizeof(esma_sockaddr_t);
+	struct sockaddr sa;
+	socklen_t len = server->addr_len;
 
-	fd = accept(server->fd, &sa.sa, &len);
+	fd = accept(server->fd, &sa, &len);
 	if (fd < 0)
 		return 1;
 
@@ -148,7 +148,7 @@ int esma_socket_accept(struct esma_socket *client, struct esma_socket *server)
 
 	client->fd = fd;
 
-	switch (sa.sa.sa_family) {
+	switch (sa.sa_family) {
 	case AF_INET:
 		client->addr_len = sizeof(struct sockaddr_in);
 		break;
@@ -161,8 +161,7 @@ int esma_socket_accept(struct esma_socket *client, struct esma_socket *server)
 	memcpy(&client->addr, &sa, client->addr_len);
 
 	client->fd = fd;
-	client->family = sa.sa.sa_family;
-
+	client->family = sa.sa_family;
 	return 0;
 }
 

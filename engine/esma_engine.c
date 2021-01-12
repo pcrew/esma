@@ -18,6 +18,7 @@
 #include "esma_engine.h"
 #include "esma_message.h"
 #include "esma_reactor.h"
+#include "esma_engine_fd.h"
 #include "esma_engine_info.h"
 #include "esma_engine_common.h"
 #include "esma_engine_dispatcher.h"
@@ -58,7 +59,8 @@ int __esma_set_tick_trans(struct trans *trans, struct esma *esma)
 	ch->hard = 1;
 	ch->owner = esma;
 	ch->info.tick.interval_msec = ch->raw_data;
-	fd = reactor->new_timerfd();
+
+	fd = esma_engine_new_timerfd();
 	if (unlikely(-1 == fd)) {
 		esma_engine_log_err("%s()/%s - reactor->new_timerfd(): failed\n", __func__, esma->name);
 		return 1;
@@ -85,7 +87,7 @@ int __esma_set_sign_trans(struct trans *trans, struct esma *esma)
 	ch->hard = 1;
 	ch->owner = esma;
 
-	fd = reactor->new_sig(ch->raw_data);
+	fd = esma_engine_new_signalfd(ch->raw_data);
 	if (unlikely(-1 == fd)) {
 		esma_engine_log_err("%s()/%s - reactor->new_sig(): failed\n", __func__, esma->name);
 		return 1;
@@ -279,7 +281,6 @@ int esma_engine_init(u32 ngn_id)
 
 	ei->status = 1;
 
-#if 0
 	if (0 == ngn_id) {
 		reactor = get_api("reactor_epoll");	/* For test */
 		if (NULL == reactor) {
@@ -289,17 +290,6 @@ int esma_engine_init(u32 ngn_id)
 		}
 		reactor->init(32, ei);
 	}
-#else
-	if (0 == ngn_id) {
-		reactor = get_api("reactor_poll");	/* For test */
-		if (NULL == reactor) {
-			esma_engine_log_ftl("%s() - can't get reactor '%s'\n",
-					__func__, "reactor_epoll");
-			exit(1);
-		}
-		reactor->init(32, ei);
-	}
-#endif
 
 	return 0;
 }
@@ -432,7 +422,7 @@ int esma_engine_arm_tick_channel(struct esma_channel *ch)
 	if (NULL == ch)
 		return 1;
 
-	return reactor->arm_timerfd(ch->fd, ch->info.tick.interval_msec, ch->info.tick.periodic);
+	return esma_engine_arm_timerfd(ch->fd, ch->info.tick.interval_msec, ch->info.tick.periodic);
 }
 
 int esma_engine_disarm_tick_channel(struct esma_channel *ch)
@@ -440,7 +430,7 @@ int esma_engine_disarm_tick_channel(struct esma_channel *ch)
 	if (NULL == ch)
 		return 1;
 
-	return reactor->disarm_timerfd(ch->fd);
+	return esma_engine_disarm_timerfd(ch->fd);
 }
 
 struct state *esma_find_state_by_name(struct esma *esma, char *name)

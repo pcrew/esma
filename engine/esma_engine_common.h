@@ -2,6 +2,8 @@
 #ifndef ESMA_ENGINE_COMMON_H
 #define ESMA_ENGINE_COMMON_H
 
+#include "common/numeric_types.h"
+
 #define __INIT__	0
 #define __FINI__	1
 
