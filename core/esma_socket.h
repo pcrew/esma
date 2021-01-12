@@ -12,19 +12,17 @@
 
 #include "common/numeric_types.h"
 
-typedef union esma_sockaddr {
-	struct sockaddr		sa;
-	struct sockaddr_in	sa_in;
-	struct sockaddr_un	sa_un;
-	struct sockaddr_in6	sa_in6;
-} esma_sockaddr_t;
-
 struct esma_socket {
 	int			fd;
 	int			type;
 	int			family;
 
-	union esma_sockaddr	addr;
+	union {
+		struct sockaddr		sa;
+		struct sockaddr_in	sa_in;
+		struct sockaddr_un	sa_un;
+		struct sockaddr_in6	sa_in6;
+	} addr;
 	socklen_t		addr_len;
 };
 
