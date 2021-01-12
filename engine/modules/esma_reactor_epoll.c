@@ -1,15 +1,8 @@
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <signal.h>
 
 #include <sys/epoll.h>
-#include <sys/ioctl.h>
-#include <sys/inotify.h>
 #include <sys/timerfd.h>
 #include <sys/signalfd.h>
 
@@ -82,7 +75,7 @@ static int epoll_reactor__add(int fd, struct esma_channel *ch)
 	return 0;
 }
 
-static int epoll_reactor__del(int fd)
+static int epoll_reactor__del(int fd, __attribute__((unused)) struct esma_channel *ch)
 {
 	struct epoll_event ev = {0};
 	   int ret;
