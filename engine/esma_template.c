@@ -230,7 +230,7 @@ int _new_esma_state_template(struct esma_template *tmpl, char *name, u32 name_le
 	return 0;
 }
 
-/* TODO: неоюходимо добавлять состояния по индексу кода; сейчас делается обычный push */
+/* TODO: необходимо добавлять состояния по индексу кода; сейчас делается обычный push */
 int _new_esma_trans_template(struct esma_state_template *src,
 			     struct esma_state_template *dst,
 			     u32 code,
