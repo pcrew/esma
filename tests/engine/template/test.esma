@@ -1,17 +1,56 @@
 
+//	single line comment
 states {
-	work;
 	idle;
+	work;
 };
 
+// single line comment
+//	single line comment
+
 trans {
+
+	/* 
+	 *	multiline comment;
+	 */
+
 	init -> idle: 0;
 	idle -> work: 0;
 
-	work -> self: tick_0: 1000ms;
-	work -> self: data_1: ESMA_POLLIN;
-	work -> self: data_2: ESMA_POLLOUT;
+	/* 	This
+	 * 	Is
+	 *	Multiline
+	 *	Comment
+	 */
+
+	// single line comment	
+	
+	/* 	This
+	 * 	Is
+	 *	Multiline
+	 *	Comment
+	 */
+
+	work -> self: tick_0: 1000ms: ESMA_TM_ONESHOT;	//single line comment
+	work -> self: data_1: ESMA_POLLIN;			//	single line comment
+
+	/* 	This
+	 * 	Is
+	 *	Multiline
+	 *	Comment
+	 */
+
+	work -> self: data_2: ESMA_POLLOUT;					//		single line comment
 	work -> self: data_3: ESMA_POLLHUP;
 	work -> self: data_4: ESMA_POLLERR;
 	work -> self: sign_0: SIGINT;
+
+	/* 	This
+	 * 	Is
+	 *	Multiline
+	 *	Comment
+	 */
+
+
+
 };

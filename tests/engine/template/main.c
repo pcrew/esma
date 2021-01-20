@@ -5,12 +5,16 @@
 #include <string.h>
 #include <errno.h>
 
+#include "core/esma_logger.h"
 #include "engine/esma_template.h"
 
 int main()
 {
 	struct esma_template tmpl;
 	   int err;
+
+	esma_logger_set_log_level(ESMA_LOG_DBG);
+	esma_logger_set_log_flags(ESMA_LOG_ENGINE);
 
 	err = esma_template_init(&tmpl, "test");
 	if (err) {
