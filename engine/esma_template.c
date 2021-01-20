@@ -297,6 +297,19 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 	s = p;
 	while (p != end) {
 
+		if ('/' == *p && '/' == *(p + 1)) {
+			while (*p != '\n')
+				p++;
+		}
+
+		if ('/' == *p && '*' == *(p + 1)) {
+			while (*p != '*' || *(p + 1) != '/') {
+				p++;
+			}
+			p += 2;	/* skiping '*' and '/' */
+			
+		}
+
 		switch (state) {
 
 		case st_start:
