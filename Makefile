@@ -17,9 +17,9 @@ aill:
 	@$(MAKE) -C programs
 
 clean:
-	@rm -v `find . -name *.o`
-	@rm -v 'find . -name *.sw?'
-	@rm -v 'find . -name *.sw?'
+	@rm -vf `find . -name *.o`
+	@rm -vf `find . -name *.sw?`
+	@rm -vf `find . -name *.sw?`
 
 cleanall:
 	@rm -vf `find . -name *.o`
