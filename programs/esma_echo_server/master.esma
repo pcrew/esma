@@ -1,4 +1,18 @@
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** 
+ * The architecture assumes one state machine.											*
+ * There is only one state: work;												*
+ * To test the engine, several transitions are unnecessary for the echo server:							*
+ *	work -> self: tick_0 	- need to testing periodic timer;								*
+ *	work -> self: tick_3 	- need to testing oneshot timer;								*
+ *																*
+ *	work -> self: sign_(n)	- need to testing signal processing.								*
+ *																*
+ * The main action takes place in data_(n) transactions:									*
+ *	work -> self: data_0: New client nitification. After this action Master take the client to slave and keep listening;	*
+ *	work -> self: data_1: Some problem with new client or server socket.							*
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
+
 states {
 	work;
 };
@@ -14,7 +28,7 @@ trans {
 	work -> self: sign_1: SIGUSR2;
 
 	work -> self: data_0: ESMA_POLLIN;
-	work -> self: data_1: ESMA_POLLHUP;
+	work -> self: data_1: ESMA_POLLERR;
 
 	work -> fini: 3;
 };

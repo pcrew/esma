@@ -57,7 +57,7 @@ __fail:
 	return 1;
 }
 
-static int __master_init_socket(struct esma *master)
+static int __master_init_socket(struct esma *master, u16 port)
 {
 	struct master_info *mi = master->data;
 	   int err;
@@ -80,7 +80,7 @@ static int __master_init_socket(struct esma *master)
 		goto __fail;
 	}
 
-	err = esma_socket_bind(&mi->socket, 1771, NULL);
+	err = esma_socket_bind(&mi->socket, port, NULL);
 	if (err) {
 		esma_user_log_err("%s()/%s - esma_socket_bind(1771): failed\n", __func__, master->name);
 		goto __fail;
@@ -160,6 +160,7 @@ __fail:
 int master_init_enter(__unbox__)
 {
 	int err;
+	u16 port = *(u16 *) dptr;
 
 	err = __master_init(me);
 	if (err) {
@@ -167,11 +168,12 @@ int master_init_enter(__unbox__)
 		goto __fini;
 	}
 
-	err = __master_init_socket(me);
+	err = __master_init_socket(me, port);
 	if (err) {
 		esma_user_log_err("%s()/%s - master_init_socket(): failed\n", __func__, me->name);
 		goto __fini;
 	}
+	esma_user_log_inf("%s()/%s - create socket on port '%hu'\n", __func__, me->name, port);
 
 	err = __master_init_slaves(me);
 	if (err) {

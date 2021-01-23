@@ -44,11 +44,29 @@ struct esma master;
 			ESMA_LOG_ENGINE		|\
 			ESMA_LOG_DISPATCHER
 
+void usage()
+{
+	printf("Run: ./test PORT\n");
+	printf("Where PORT is port number\n");
+	printf("For example: ./test 1771\n");
+	exit(1);
+}
+
 int main(int argc, char **argv)
 {
 	int err;
 	int ret;
+	u16 port;
 	pid_t pid = getpid();
+
+	if (argc < 2)
+		usage();
+
+	sscanf(argv[1], "%hu", &port);
+	if (0 == port) {
+		printf("Invalid port: %s\n", argv[1]);
+		usage();
+	}
 
 	esma_dbuf_set(&master_tmpl_dbuf, master_tmpl);
 
@@ -93,7 +111,7 @@ int main(int argc, char **argv)
 
 	esma_user_log_nrm("procces '%d' has been started\n", pid);
 
-	esma_run(&master, NULL);
+	esma_run(&master, &port);
 
 	while (1) {
 		ret = esma_engine_exec(0);

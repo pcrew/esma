@@ -1,4 +1,18 @@
 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** 
+ * The architecture assumes some states machine.					*
+ * There is four states:								*
+ *	idle -> self: 1	- message from master: new client;				*
+ *	recv -> self: tick_0: 10s - set timer for waiting data from client;		*
+ *	recv -> self: data_0: waiting for new data;					*
+ *	recv -> self: data_1: some error;						*
+ *	recv -> send: 0; normal transition: all data received;				*
+ * 	recv -> done: 1; unnormal transition: has ESMA_POLLERR or timeout by tick_0;	*
+ *											*
+ * for the 'send' state, all transitions are equivalent to the previous one.		*
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/ 
+
 states {
 	idle;
 	recv;

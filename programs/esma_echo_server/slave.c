@@ -128,7 +128,7 @@ int slave_recv_enter(__unbox__)
 
 int slave_recv_tick_0(__unbox__)
 {
-	esma_user_log_wrn("%s()/%s - recv data: timeout\n", __func__, me->name);
+	esma_user_log_inf("%s()/%s - recv data: timeout\n", __func__, me->name);
 	esma_msg(me, me, NULL, 1);
 	return 0;
 }
