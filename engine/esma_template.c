@@ -306,19 +306,18 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			while (*p != '*' || *(p + 1) != '/') {
 				p++;
 			}
-			p += 2;	/* skiping '*' and '/' */
-			
+			p += 2;	/* skiping '*' and '/' */			
+		}
+
+		if (IS_DELIM(p)) {
+			p++;
+			continue;
 		}
 
 		switch (state) {
 
 		case st_start:
 		case st_idle:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 /* TODO: Добавить проверку наличия двух и более секций states в конфигурации: в случае нахождения второй секции выходить с ошибкой */
 			if (end - p >= 6) {
@@ -365,7 +364,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				break;
 			}
 
-			if (IS_DELIM(p) || IS_SEMICOLON(p)) {
+			if (IS_SEMICOLON(p)) {
 				p++;
 				break;
 			}
@@ -391,7 +390,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				break;
 			}
 
-			if (IS_DELIM(p) || IS_SEMICOLON(p)) {
+			if (IS_SEMICOLON(p)) {
 				p++;
 				break;
 			}
@@ -465,21 +464,11 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				break;
 			}
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			esma_engine_log_err("%s()/%s - section 'states': need semicolon after state name\n",
 					__func__, et->name);
 			goto __fail;
 
 		case st_state_section_leave:
-
-			if(IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			if (IS_SEMICOLON(p)) {
 				state = st_idle;
@@ -492,11 +481,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_section:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			if (IS_OPEN_BRACE(p)) {
 				p++;
@@ -518,11 +502,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_section_enter:
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			if (IS_CLOSE_BRACE(p)) {
 				p++;
 				state = st_trans_section_leave;
@@ -538,11 +517,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_state_src:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			s = t = p;
 
@@ -581,11 +555,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_state_row:
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			if (end - p >= 2) {
 				if (IS_ROW(p)) {
 					p += 2;
@@ -602,11 +571,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_state_dst:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			s = t = p;
 
@@ -655,11 +619,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_state_dst_colon:
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			if (IS_NOT_COLON(p)) {
 				esma_engine_log_err("%s()/%s - section 'trans': need colon after dst state\n",
 						__func__, et->name);
@@ -671,11 +630,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_code:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			s = p;
 
@@ -881,11 +835,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_code_channel_sign_number:
-
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
 
 			if (IS_NOT_COLON(p)) {
 				esma_engine_log_err("%s()/%s - section 'trans': need colon\n", __func__, et->name);
@@ -1101,11 +1050,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_code_channel_data_event:
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			if (IS_NOT_COLON(p)) {
 				esma_engine_log_err("%s()/%s - section 'trans': need colon\n", __func__, et->name);
 				goto __fail;
@@ -1172,11 +1116,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_semicolon:
 
-			if (IS_DELIM(p)) {
-				p++;
-				break;
-			}
-
 			if (IS_NOT_SEMICOLON(p)) {
 				esma_engine_log_err("%s()/%s - section 'trans': need semicolon after trans description.\n",
 						__func__, et->name);
@@ -1203,10 +1142,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_section_leave:
-
-			if (IS_DELIM(p)) {
-				p++;
-			}
 
 			if (IS_NOT_SEMICOLON(p)) {
 				esma_engine_log_err("%s()/%s - section 'trans': need semicolon after section\n",

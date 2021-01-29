@@ -1,6 +1,7 @@
 
-#include <stdarg.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 
 #include "esma_logger.h"
 
@@ -59,6 +60,7 @@ void esma_console_log(int flags, int level, char *fmt, ...)
 
 	char report_str[ESMA_MAX_REPORT_STR];
 	char *p;
+	 int  n;
 
 	if (0 == (flags & esma_log_flags))
 		return;
@@ -70,12 +72,16 @@ void esma_console_log(int flags, int level, char *fmt, ...)
 
 	p = report_str;
 
+	sprintf(p, "%s", esma_log_info[level].color);
+	p += strlen(esma_log_info[level].color);
+
 	sprintf(p, "%s", esma_log_info[level].error);
 	p += 5;	/* All msg - ect "DBG: " - has lenght equal 5 */
-	vsnprintf(p, ESMA_MAX_REPORT_STR, fmt, args);
+	
+	p += vsnprintf(p, ESMA_MAX_REPORT_STR, fmt, args);
+	
+	sprintf(p, "%s", esma_log_info[ESMA_LOG_NRM].color);
 
-	printf("%s", esma_log_info[level].color);
 	printf("%s", report_str);
-	printf("%s", esma_log_info[ESMA_LOG_NRM].color);
 	fflush(stdout);
 }
