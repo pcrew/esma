@@ -1,0 +1,253 @@
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#include "esma_rx.h"
+
+#include "core/esma_dbuf.h"
+#include "core/esma_logger.h"
+
+char *esma_rx_tmpl = 
+	"	states {						"
+	"		idle;						"
+	"		work;						"
+	"		done;						"
+	"	};							"
+	"								"
+	"	trans {							"
+	"		init -> idle: 0;				"
+	"		init -> fini: 3;				"
+	"								"
+	"		idle -> self: 1;				"
+	"		idle -> work: 0;				"
+	"								"
+	"		work -> self: tick_0: 10s: ESMA_TM_PERIODIC;	"
+	"		work -> self: data_0: ESMA_POLLIN;		"
+	"		work -> self: data_1: ESMA_POLLERR;		"
+	"		work -> done: 0;				"
+	"								"
+	"		done -> idle: 0;				"
+	"	};							"
+	"								"
+;
+
+/* Public functions: enter */
+int esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id)
+{
+	struct esma_dbuf esma_rx_tmpl_dbuf;
+	struct esma_template tmpl;
+	   int err;
+
+	esma_dbuf_set(&esma_rx_tmpl_dbuf, esma_rx_tmpl);
+
+	if (NULL == name)
+		name = "nameless";
+
+	if (ngn_id < 0) {
+		esma_user_log_err("%s()/%s - ngn_id < 0\n", __func__, name);
+		return 1;
+	}
+
+	if (NULL == rx) {
+		esma_user_log_err("%s()/%s - esma is NULL\n", __func__, name);
+		return 1;
+	}
+
+	if (NULL == tmpl_path) {
+		goto __set_basic;
+	}
+
+	goto __set_custom;
+
+__set_basic:
+
+	err = esma_template_set_by_dbuf(&tmpl, &esma_rx_tmpl_dbuf);
+	if (err) {
+		esma_user_log_err("%s()/%s: set esma_template basic: failed\n",
+				__func__, name);
+		return 1;
+	}
+
+	goto __init;
+
+__set_custom:
+
+	err = esma_template_set_by_path(&tmpl, tmpl_path);
+	if (err) {
+		esma_user_log_err("%s()/%s: esma_template_set('%s'): failed\n",
+				__func__, tmpl_path);
+		return 1;
+	}
+
+	goto __init;
+
+__init:
+
+	err = esma_init(rx, name, &tmpl. ngn_id);
+	if (err) {
+		esma_user_log_err("%s()/%s: esma_init(): failed\n",
+				__func__, name);
+		return 1;
+	}
+
+	esma_user_log_dbg("%s()/%s - machine successfuly inited\n", __func__, name);
+	return 0;	
+}
+
+int esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
+{
+	if (NULL == rx) {
+		esma_user_log_err("%s() - rx or restroom is NULL\n", __func__);
+		return 1;
+	}
+
+	return esma_run(&master, restroom);
+}
+/* Public functions: leave */
+
+
+/* State machine action: enter */
+
+#define __unbox__	struct esma *requester, struct esma *me, void *dptr
+
+struct rx_info {
+	struct esma_dbuf *dbuf;
+	struct esma_objpool *restroom;
+	struct esma_channel *tick;
+	struct esma *requester;
+	u32 timeout_after_read;
+};
+
+int esma_rx_init_enter(__unbox__)
+{
+	struct rx_info *rxi = NULL;
+	
+	rxi = malloc(sizeof(struct rx_info));
+	if (NULL == rxi) {
+		esma_user_log_err("%s()/%s - can't allocate memory for info section\n",
+				__func__, me->name);
+		goto __fini;
+	}
+
+	rxi->restroom = dptr;
+	rxi->tick = esma_get_channel(me, "work", 0, ESMA_CH_TICK);
+	if (NULL == rxi->tick) {
+		esma_user_log_wrn("%s()/%s - can't get channel 0. Did you add tick_0 in esma file?\n",
+				__func__, me->name);
+	}
+
+	me->data = rxi;
+	esma_msg(me, me, NULL, 0);
+	return 0;
+}
+
+int esma_rx_init_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_idle_enter(__unbox__)
+{
+	struct rx_info *rxi = me->data;
+	   int err;
+
+	if (NULL == rxi->restroom)
+		return 0;
+
+	err = esma_objpool_put(pool, me);
+	if (err) {
+		esma_user_log_ftl("%s()/%s - esma_objpool_put(): failed\n",
+				__func__, me->name);
+		exit(1);
+	}
+
+	return 0;
+}
+
+/* message from requester */
+int esma_rx_idle_1(__unbox__)
+{
+	struct esma_message_to_rx *mtr = dptr;
+	struct rx_info *rxi = me->data;
+
+	if (NULL == mtr) {
+		esma_user_log_wrn("%s()/%s - empty message from '%s'\n",
+				__func__, me->name, from->name);
+
+		esma_msg(me, requester, NULL, 3);
+		return 0;
+	}
+
+	rxi->dbuf = mtr->dbuf;
+	rxi->requester = from;
+	rxi->timeout_after_read = mtr->timeout_after_read;
+
+	esma_channel_set_interval(rxi->tick, mtr->timeout_wait);
+
+	me_msg(me, me, NULL, 0); 
+	return 0;
+}
+
+int esma_rx_idle_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_work_enter(__unbox__)
+{
+	struct rx_info *rxi = me->data;
+	struct esma *requester = rxi->requester;
+	struct esma_channel *ch = &requester->io_channel;
+
+	esma_dbuf_clear(rxi->dbuf);
+
+	esma_engine_mod_io_channel(ch, ESMA_POLLIN, IO_EVENT_ENABLE);
+	esma_user_log_dbg("%s()/%s start receiving from fd '%d' for '%s'\n",
+			__func__, me->name, ch->fd, requester->name);
+
+	return 0;
+
+}
+
+/* TODO: Необходимо добавить фиксированные коды "возврата"; например:
+ * 	1 - Данные получены;
+ * 	2 - Соединение закрыто;
+ * 	3 - Ошибка чтения.
+ * 	4 - Таймаут.
+ */
+int esma_rx_work_data_0(__unbox__)
+{
+	struct rx_info *rxi = me->data;
+	struct esma_dbuf *dbuf = rxi->dbuf;
+	   u32 ba = rxi->requester->io_channel.info.data.bytes_avail;
+	   int n;
+
+	if (0 == ba) {
+		esma_user_log_inf("%s()/%s - connection close\n", __func__, me->name);
+		esma_msg(me, requester, NULL, 2);
+		esma_msg(me, me, NULL, 0);
+		return 0;
+	}
+
+	if (ba > dbuf->len) {
+		int err = esma_dbuf_expand(dbuf, ba);
+		if (err) {
+			esma_user_log_err("%s()/%s - can't expand dbuf\n", __func__, me->name);
+		}
+	}
+
+	n = read(me->io_channel.fd, dbuf->pos, ba);
+	if (n < 0) {
+		if (EINTR == errno)
+			return 0;
+
+		esma_msg(me, requester, NULL, 3);
+		esma_msg(me, me, NULL, 0);
+		return 0;
+	}
+
+	dbuf->pos += n;
+	dbuf->cnt += n;
+
+}
