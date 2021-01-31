@@ -24,12 +24,16 @@ char *esma_rx_tmpl =
 	"		idle -> self: 1;				"
 	"		idle -> work: 0;				"
 	"								"
-	"		work -> self: tick_0: 10s: ESMA_TM_PERIODIC;	"
+	"		work -> self: tick_0: 0ms: ESMA_TM_ONESHOT;	"
 	"		work -> self: data_0: ESMA_POLLIN;		"
 	"		work -> self: data_1: ESMA_POLLERR;		"
 	"		work -> done: 0;				"
 	"								"
+	"		done -> self: tick_0: 0ms: ESMA_TM_ONESHOT	"
+	"		done -> self: data_0: ESMA_POLLIN;		"
+	"		done -> self: data_1: ESMA_POLLERR;		"
 	"		done -> idle: 0;				"
+	"		done -> work: 1;				"	
 	"	};							"
 	"								"
 ;
@@ -111,14 +115,21 @@ int esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
 
 #define __unbox__	struct esma *requester, struct esma *me, void *dptr
 
+#define RX_STATUS_EMPTY		0
+#define RX_STATUS_READING	1
+#define RX_STATUS_CHECKING	2
+#define RX_STATUS
+
 struct rx_info {
 	struct esma *requester;
 	struct esma_dbuf *dbuf;
 	struct esma_objpool *restroom;
-	struct esma_channel *tick;
+	struct esma_channel *tick_waiting;
+	struct esma_channel *tick_after_recv;
 	u32 timeout_after_read;
 
 	read_done_f read_done;
+	u32 status;
 };
 
 int esma_rx_init_enter(__unbox__)
@@ -133,9 +144,15 @@ int esma_rx_init_enter(__unbox__)
 	}
 
 	rxi->restroom = dptr;
-	rxi->tick = esma_get_channel(me, "work", 0, ESMA_CH_TICK);
-	if (NULL == rxi->tick) {
-		esma_user_log_wrn("%s()/%s - can't get channel 0. Did you add tick_0 in esma file?\n",
+	rxi->tick_waiting = esma_get_channel(me, "work", 0, ESMA_CH_TICK);
+	if (NULL == rxi->tick_waiting) {
+		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'work' state. Did you add tick_0 in esma file?\n",
+				__func__, me->name);
+	}
+
+	rxi->tick_after_recv = esma_get_channel(me, "done", 0, ESMA_CH_TICK);
+	if (NULL == rxi->tick_after_recv) {
+		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'done' state. Did you add tick_0 in esma file?\n",
 				__func__, me->name);
 	}
 
@@ -183,12 +200,12 @@ int esma_rx_idle_1(__unbox__)
 
 	rxi->requester = from;
 	rxi->dbuf = ctx->dbuf;
-	rxi->timeout_after_read = ctx->timeout_after_read;
+	rxi->timeout_after_recv = ctx->timeout_after_recv;
 	rxi->read_done = ctx->read_done;
 
-	esma_channel_set_interval(rxi->tick, mtr->timeout_wait);
+	esma_channel_set_interval(rxi->tick_waiting, mtr->timeout_wait);
 
-	me_msg(me, me, NULL, 0); 
+	esma_msg(me, me, NULL, 0); 
 	return 0;
 }
 
@@ -217,11 +234,11 @@ int esma_rx_work_data_0(__unbox__)
 {
 	struct rx_info *rxi = me->data;
 	struct esma_dbuf *dbuf = rxi->dbuf;
-	   u32 ba = rxi->requester->io_channel.info.data.bytes_avail;
+	   u32 ba = esma_channel_bytes_avail(&rxi->requester->io_channel);
 	   int n;
 
 	if (0 == ba) {
-		esma_user_log_inf("%s()/%s - connection close\n", __func__, me->name);
+		esma_user_log_dbg("%s()/%s - connection close\n", __func__, me->name);
 		esma_msg(me, requester, NULL, 2);
 		esma_msg(me, me, NULL, 0);
 		return 0;
@@ -247,5 +264,58 @@ int esma_rx_work_data_0(__unbox__)
 	dbuf->pos += n;
 	dbuf->cnt += n;
 
+	if (rxi->read_done(dbuf)) {
+		if (rxi->timeout_after_read) {
+			esma_channel_set_interval(rxi->tick_after_recv, rxi->timeout_after_recv);
+			esma_msg(me, me, NULL, 0);
+			return 0;
+		}
+
+		esma_msg(me, requester, NULL, 1);
+		esma_msg(me, me, NULL, 0);
+		return 0;
+	}
+
+	return 0;
+}
+
+int esma_rx_work_tick_0(__unbox__)
+{
+	struct esma_rx_info *rxi = me->data;
+
+	esma_user_log_dbg("%s()/%s - recv: timeout\n", __func__, me->name);
+	esma_msg(me, rxi->requester, NULL, 2);
+	esma_msg(me, me, NULL, 0);
+	return 0;
+}
+
+int esma_rx_work_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_done_enter(__unbox__)
+{
+	
+	return 0;
+}
+
+int esma_rx_done_tick_0(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_done_data_0(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_done_data_1(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_done_leave(__unbox__)
+{
 	return 0;
 }
