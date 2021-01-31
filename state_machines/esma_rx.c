@@ -123,10 +123,8 @@ void esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
 
 #define __unbox__	struct esma *requester, struct esma *me, void *dptr
 
-#define RX_STATUS_EMPTY		0
-#define RX_STATUS_READING	1
-#define RX_STATUS_CHECKING	2
-#define RX_STATUS
+#define RX_IO_ENABLE		0
+#define RX_IO_DISABLE		1
 
 struct rx_info {
 	struct esma		*requester;
@@ -139,6 +137,17 @@ struct rx_info {
 	read_done_f		 read_done;
 	u32			 status;
 };
+
+void _rx_done(struct esma *me, struct esma *requester, u32 code)
+{
+	struct rx_info *rxi = me->data;
+
+	esma_engine_mod_io_channel(me, 0, IO_EVENT_DISABLE);
+	rxi->status = RX_IO_DISABLE;
+
+	esma_msg(me, requester, NULL, code);
+	esma_msg(me, me, NULL, TO_IDLE);
+}
 
 int esma_rx_init_enter(__unbox__)
 {
@@ -217,11 +226,11 @@ int esma_rx_idle_1(__unbox__)
 	rxi->dbuf = ctx->dbuf;
 	rxi->timeout_after_recv = ctx->timeout_after_recv;
 	rxi->read_done = ctx->read_done;
+	rxi->status = RX_IO_DISABLE;
 
 	esma_dbuf_clear(rxi->dbuf);
 	
 	esma_engine_init_io_channel(me, ctx->fd);
-	esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
 	
 	esma_channel_set_interval(rxi->tick_waiting, ctx->timeout_wait);
 
@@ -243,6 +252,11 @@ int esma_rx_work_enter(__unbox__)
 	struct rx_info *rxi = me->data;
 	struct esma *req = rxi->requester;
 	struct esma_channel *ch = &requester->io_channel;
+
+	if (RX_IO_DISABLE == rxi->status) {
+		esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
+		rxi->status = RX_IO_ENABLE;
+	}
 
 	esma_user_log_dbg("%s()/%s start receiving from fd '%d' for '%s'\n",
 			__func__, me->name, ch->fd, req->name);
@@ -288,8 +302,7 @@ int esma_rx_work_data_0(__unbox__)
 			return 0;
 		}
 
-		esma_msg(me, requester, NULL, RECV_SUCCESS);
-		esma_msg(me, me, NULL, TO_IDLE);
+		_rx_done(me, requester, RECV_SUCCESS);
 		return 0;
 	}
 
@@ -297,18 +310,16 @@ int esma_rx_work_data_0(__unbox__)
 
 __recv_fail:
 
-	esma_msg(me, requester, NULL, RECV_FAILURE);
-	esma_msg(me, me, NULL, TO_IDLE);
+	_rx_done(me, requester, RECV_FAILURE);
 	return 0;
 }
 
 int esma_rx_work_data_1(__unbox__)
 {
 	struct rx_info *rxi = me->data;
-	
+
 	esma_user_log_dbg("%s()/%s - recv: failed\n", __func__, me->name);
-	esma_msg(me, rxi->requester, NULL, RECV_FAILURE);
-	esma_msg(me, me, NULL, TO_IDLE);
+	_rx_done(me, rxi->requester, RECV_FAILURE);	
 
 	return 0;
 }
@@ -318,8 +329,8 @@ int esma_rx_work_tick_0(__unbox__)
 	struct rx_info *rxi = me->data;
 
 	esma_user_log_dbg("%s()/%s - recv: timeout\n", __func__, me->name);
-	esma_msg(me, rxi->requester, NULL, RECV_FAILURE);
-	esma_msg(me, me, NULL, TO_IDLE);
+	_rx_done(me, rxi->requester, RECV_FAILURE);	
+	
 	return 0;
 }
 
@@ -338,8 +349,8 @@ int esma_rx_done_tick_0(__unbox__)
 	struct rx_info *rxi = me->data;
 
 	esma_user_log_dbg("%s()/s - recv for '%s' success\n", __func__, me->name, rxi->requester->name);
-	esma_msg(me, requester, NULL, RECV_SUCCESS);
-	esma_msg(me, me, NULL, TO_IDLE);
+
+	_rx_done(me, rxi->requester, RECV_SUCCESS);
 	return 0;
 }
 
