@@ -246,8 +246,8 @@ int esma_tx_work_data_0(__unbox__)
 	}
 
 	if (n == dbuf->cnt) {
-		esma_msg(me, requester, NULL, SEND_SUCCESS);
 		esma_msg(me, me, NULL, TO_IDLE);
+		esma_msg(me, requester, NULL, SEND_SUCCESS);
 		return 0;
 	}
 
@@ -258,8 +258,8 @@ int esma_tx_work_data_0(__unbox__)
 
 __send_fail:
 
-	esma_msg(me, requester, NULL, SEND_FAILURE);
 	esma_msg(me, me, NULL, TO_IDLE);
+	esma_msg(me, requester, NULL, SEND_FAILURE);
 	return 0;
 }
 
@@ -268,8 +268,8 @@ int esma_tx_work_data_1(__unbox__)
 	struct tx_info *txi = me->data;
 	
 	esma_user_log_dbg("%s()/%s - send: failed\n", __func__, me->name);
-	esma_msg(me, txi->requester, NULL, SEND_FAILURE);
 	esma_msg(me, me, NULL, TO_IDLE);
+	esma_msg(me, txi->requester, NULL, SEND_FAILURE);
 
 	return 0;
 }
@@ -279,8 +279,8 @@ int esma_tx_work_tick_0(__unbox__)
 	struct tx_info *txi = me->data;
 
 	esma_user_log_dbg("%s()/%s - send: timeout\n", __func__, me->name);
-	esma_msg(me, txi->requester, NULL, SEND_FAILURE);
 	esma_msg(me, me, NULL, TO_IDLE);
+	esma_msg(me, txi->requester, NULL, SEND_FAILURE);
 	return 0;
 }
 

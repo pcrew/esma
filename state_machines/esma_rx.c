@@ -145,8 +145,8 @@ void _rx_done(struct esma *me, struct esma *requester, u32 code)
 	esma_engine_mod_io_channel(me, 0, IO_EVENT_DISABLE);
 	rxi->status = RX_IO_DISABLE;
 
-	esma_msg(me, requester, NULL, code);
 	esma_msg(me, me, NULL, TO_IDLE);
+	esma_msg(me, requester, NULL, code);
 }
 
 int esma_rx_init_enter(__unbox__)
