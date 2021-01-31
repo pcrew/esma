@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #include "esma_rx.h"
+#include "esma_sm_data.h"
 
 #include "core/esma_dbuf.h"
 #include "core/esma_logger.h"
@@ -32,7 +34,7 @@ char *esma_rx_tmpl =
 	"								"
 ;
 
-/* Public functions: enter */
+/* Public functions */
 int esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id)
 {
 	struct esma_dbuf esma_rx_tmpl_dbuf;
@@ -104,19 +106,19 @@ int esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
 
 	return esma_run(&master, restroom);
 }
-/* Public functions: leave */
 
-
-/* State machine action: enter */
+/* State machine actions */
 
 #define __unbox__	struct esma *requester, struct esma *me, void *dptr
 
 struct rx_info {
+	struct esma *requester;
 	struct esma_dbuf *dbuf;
 	struct esma_objpool *restroom;
 	struct esma_channel *tick;
-	struct esma *requester;
 	u32 timeout_after_read;
+
+	read_done_f read_done;
 };
 
 int esma_rx_init_enter(__unbox__)
@@ -168,20 +170,21 @@ int esma_rx_idle_enter(__unbox__)
 /* message from requester */
 int esma_rx_idle_1(__unbox__)
 {
-	struct esma_message_to_rx *mtr = dptr;
+	struct esma_io_context *ctx = dptr;
 	struct rx_info *rxi = me->data;
 
-	if (NULL == mtr) {
-		esma_user_log_wrn("%s()/%s - empty message from '%s'\n",
+	if (NULL == ctx) {
+		esma_user_log_wrn("%s()/%s - empty context from '%s'\n",
 				__func__, me->name, from->name);
 
-		esma_msg(me, requester, NULL, 3);
+		esma_msg(me, requester, NULL, 2);
 		return 0;
 	}
 
-	rxi->dbuf = mtr->dbuf;
 	rxi->requester = from;
-	rxi->timeout_after_read = mtr->timeout_after_read;
+	rxi->dbuf = ctx->dbuf;
+	rxi->timeout_after_read = ctx->timeout_after_read;
+	rxi->read_done = ctx->read_done;
 
 	esma_channel_set_interval(rxi->tick, mtr->timeout_wait);
 
@@ -210,12 +213,6 @@ int esma_rx_work_enter(__unbox__)
 
 }
 
-/* TODO: Необходимо добавить фиксированные коды "возврата"; например:
- * 	1 - Данные получены;
- * 	2 - Соединение закрыто;
- * 	3 - Ошибка чтения.
- * 	4 - Таймаут.
- */
 int esma_rx_work_data_0(__unbox__)
 {
 	struct rx_info *rxi = me->data;
@@ -230,8 +227,8 @@ int esma_rx_work_data_0(__unbox__)
 		return 0;
 	}
 
-	if (ba > dbuf->len) {
-		int err = esma_dbuf_expand(dbuf, ba);
+	if (ba > dbuf->len - dbuf->cnt) {
+		int err = esma_dbuf_expand(dbuf, dbuf->cnt + ba);
 		if (err) {
 			esma_user_log_err("%s()/%s - can't expand dbuf\n", __func__, me->name);
 		}
@@ -242,7 +239,7 @@ int esma_rx_work_data_0(__unbox__)
 		if (EINTR == errno)
 			return 0;
 
-		esma_msg(me, requester, NULL, 3);
+		esma_msg(me, requester, NULL, 2);
 		esma_msg(me, me, NULL, 0);
 		return 0;
 	}
@@ -250,4 +247,5 @@ int esma_rx_work_data_0(__unbox__)
 	dbuf->pos += n;
 	dbuf->cnt += n;
 
+	return 0;
 }
