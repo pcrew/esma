@@ -60,7 +60,6 @@ void esma_console_log(int flags, int level, char *fmt, ...)
 
 	char report_str[ESMA_MAX_REPORT_STR];
 	char *p;
-	 int  n;
 
 	if (0 == (flags & esma_log_flags))
 		return;
