@@ -47,7 +47,7 @@ int esma_engine_set_number_of_engines(int cap)
 	return cap;
 }
 
-int __esma_set_tick_trans(struct trans *trans, struct esma *esma)
+int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 {
 	struct esma_channel *ch = &trans->ch;
 	   int fd;
@@ -73,13 +73,13 @@ int __esma_set_tick_trans(struct trans *trans, struct esma *esma)
 	return 0;
 }
 
-int __esma_set_data_trans(struct trans *trans, struct esma *esma)
+int _esma_set_data_trans(struct trans *trans, struct esma *esma)
 {
 	/* not needed */
 	return 0;
 }
 
-int __esma_set_sign_trans(struct trans *trans, struct esma *esma)
+int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
 {
 	struct esma_channel *ch = &trans->ch;
 	   int fd;
@@ -100,7 +100,7 @@ int __esma_set_sign_trans(struct trans *trans, struct esma *esma)
 	return 0;
 }
 
-int __esma_register_channels(struct esma *esma)
+int _esma_register_channels(struct esma *esma)
 {
 	int err;
 
@@ -110,7 +110,7 @@ int __esma_register_channels(struct esma *esma)
 
 		for (int j = 0; j < state->tick_trans.nitems; j++) {
 			trans = esma_array_n(&state->tick_trans, j);
-			err = __esma_set_tick_trans(trans, esma);
+			err = _esma_set_tick_trans(trans, esma);
 			if (err) {
 				esma_engine_log_err("%s()/%s - can't set tick trans for '%s state[%d trans]",
 						__func__, esma->name, state->name, j);
@@ -120,7 +120,7 @@ int __esma_register_channels(struct esma *esma)
 
 		for (int j = 0; j < state->sign_trans.nitems; j++) {
 			trans = esma_array_n(&state->sign_trans, j);
-			err = __esma_set_sign_trans(trans, esma);
+			err = _esma_set_sign_trans(trans, esma);
 			if (err) {
 				esma_engine_log_err("%s()/%s - can't set sign trans for '%s state[%d trans]",
 						__func__, esma->name, state->name, j);
@@ -153,7 +153,7 @@ int esma_init(struct esma *esma, char *name, struct esma_template *tmpl, u32 ngn
 
 	esma->io_channel.type = ESMA_CH_NONE;
 
-	err = __esma_register_channels(esma);
+	err = _esma_register_channels(esma);
 	if (err) {
 		esma_engine_log_ftl("%s() - can't register channel\n", __func__, esma->name);
 		return 1;

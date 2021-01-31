@@ -55,4 +55,9 @@ static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
 	ch->info.tick.interval_msec = time;
 }
 
+static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
+{
+	return ch->info.data.bytes_avail;
+}
+
 #endif
