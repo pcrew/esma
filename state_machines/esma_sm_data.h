@@ -7,14 +7,15 @@
 #include "common/numeric_types.h"
 
 /* esma_rx/esma_tx data */
-typedef int (*read_done_f)(struct dbuf *dbuf);
+typedef int (*read_done_f)(struct esma_dbuf *dbuf);
 
 struct esma_io_context {
-	struct esma_dbuf *buf;
-	   int timeout_wait;
-   	   int timeout_after_read;	   
+	int			 fd;
+	struct esma_dbuf	*dbuf;
+	int			 timeout_wait;
+   	int			 timeout_after_recv;	   
 
-	read_done_f read_done;
+	read_done_f		 read_done;
 };
 
 #endif

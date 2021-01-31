@@ -10,6 +10,13 @@
 #include "core/esma_dbuf.h"
 #include "core/esma_logger.h"
 
+#define TO_WORK	0
+#define TO_IDLE	1
+#define TO_DONE	0
+
+#define RECV_SUCCESS	1
+#define RECV_FAILURE	2
+
 char *esma_rx_tmpl = 
 	"	states {						"
 	"		idle;						"
@@ -28,12 +35,13 @@ char *esma_rx_tmpl =
 	"		work -> self: data_0: ESMA_POLLIN;		"
 	"		work -> self: data_1: ESMA_POLLERR;		"
 	"		work -> done: 0;				"
+	"		work -> idle: 1;				"
 	"								"
-	"		done -> self: tick_0: 0ms: ESMA_TM_ONESHOT	"
+	"		done -> self: tick_0: 100ms: ESMA_TM_ONESHOT	"
 	"		done -> self: data_0: ESMA_POLLIN;		"
 	"		done -> self: data_1: ESMA_POLLERR;		"
-	"		done -> idle: 0;				"
-	"		done -> work: 1;				"	
+	"		done -> work: 0;				"	
+	"		done -> idle: 1;				"
 	"	};							"
 	"								"
 ;
@@ -90,7 +98,7 @@ __set_custom:
 
 __init:
 
-	err = esma_init(rx, name, &tmpl. ngn_id);
+	err = esma_init(rx, name, &tmpl, ngn_id);
 	if (err) {
 		esma_user_log_err("%s()/%s: esma_init(): failed\n",
 				__func__, name);
@@ -101,14 +109,14 @@ __init:
 	return 0;	
 }
 
-int esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
+void esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
 {
 	if (NULL == rx) {
-		esma_user_log_err("%s() - rx or restroom is NULL\n", __func__);
-		return 1;
+		esma_user_log_ftl("%s() - rx is NULL\n", __func__);
+		exit(1);
 	}
 
-	return esma_run(&master, restroom);
+	esma_run(rx, restroom);
 }
 
 /* State machine actions */
@@ -121,15 +129,15 @@ int esma_rx_run(struct esma *rx, struct esma_objpool *restroom)
 #define RX_STATUS
 
 struct rx_info {
-	struct esma *requester;
-	struct esma_dbuf *dbuf;
-	struct esma_objpool *restroom;
-	struct esma_channel *tick_waiting;
-	struct esma_channel *tick_after_recv;
-	u32 timeout_after_read;
+	struct esma		*requester;
+	struct esma_dbuf	*dbuf;
+	struct esma_objpool	*restroom;
+	struct esma_channel	*tick_waiting;
+	struct esma_channel	*tick_after_recv;
+	u32			 timeout_after_recv;
 
-	read_done_f read_done;
-	u32 status;
+	read_done_f		 read_done;
+	u32			 status;
 };
 
 int esma_rx_init_enter(__unbox__)
@@ -140,7 +148,7 @@ int esma_rx_init_enter(__unbox__)
 	if (NULL == rxi) {
 		esma_user_log_err("%s()/%s - can't allocate memory for info section\n",
 				__func__, me->name);
-		goto __fini;
+		return 1;
 	}
 
 	rxi->restroom = dptr;
@@ -157,7 +165,7 @@ int esma_rx_init_enter(__unbox__)
 	}
 
 	me->data = rxi;
-	esma_msg(me, me, NULL, 0);
+	esma_msg(me, me, NULL, TO_IDLE);
 	return 0;
 }
 
@@ -174,7 +182,9 @@ int esma_rx_idle_enter(__unbox__)
 	if (NULL == rxi->restroom)
 		return 0;
 
-	err = esma_objpool_put(pool, me);
+	esma_engine_free_io_channel(me);
+	
+	err = esma_objpool_put(rxi->restroom, me);
 	if (err) {
 		esma_user_log_ftl("%s()/%s - esma_objpool_put(): failed\n",
 				__func__, me->name);
@@ -192,20 +202,34 @@ int esma_rx_idle_1(__unbox__)
 
 	if (NULL == ctx) {
 		esma_user_log_wrn("%s()/%s - empty context from '%s'\n",
-				__func__, me->name, from->name);
+				__func__, me->name, requester->name);
 
-		esma_msg(me, requester, NULL, 2);
-		return 0;
+		goto __fail;
 	}
 
-	rxi->requester = from;
+	if (ctx->fd <= 0) {
+		esma_user_log_wrn("%s()/%s - invalid fd from '%s'\n",
+				__func__, me->name, requester->name);
+		goto __fail;
+	}
+
+	rxi->requester = requester;
 	rxi->dbuf = ctx->dbuf;
 	rxi->timeout_after_recv = ctx->timeout_after_recv;
 	rxi->read_done = ctx->read_done;
 
-	esma_channel_set_interval(rxi->tick_waiting, mtr->timeout_wait);
+	esma_dbuf_clear(rxi->dbuf);
+	
+	esma_engine_init_io_channel(me, ctx->fd);
+	esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
+	
+	esma_channel_set_interval(rxi->tick_waiting, ctx->timeout_wait);
 
-	esma_msg(me, me, NULL, 0); 
+	esma_msg(me, me, NULL, TO_WORK); 
+	return 0;
+
+__fail:
+	esma_msg(me, requester, NULL, RECV_FAILURE);
 	return 0;
 }
 
@@ -217,31 +241,26 @@ int esma_rx_idle_leave(__unbox__)
 int esma_rx_work_enter(__unbox__)
 {
 	struct rx_info *rxi = me->data;
-	struct esma *requester = rxi->requester;
+	struct esma *req = rxi->requester;
 	struct esma_channel *ch = &requester->io_channel;
 
-	esma_dbuf_clear(rxi->dbuf);
-
-	esma_engine_mod_io_channel(ch, ESMA_POLLIN, IO_EVENT_ENABLE);
 	esma_user_log_dbg("%s()/%s start receiving from fd '%d' for '%s'\n",
-			__func__, me->name, ch->fd, requester->name);
+			__func__, me->name, ch->fd, req->name);
 
 	return 0;
-
 }
 
 int esma_rx_work_data_0(__unbox__)
 {
 	struct rx_info *rxi = me->data;
 	struct esma_dbuf *dbuf = rxi->dbuf;
-	   u32 ba = esma_channel_bytes_avail(&rxi->requester->io_channel);
+	   u32 ba = me->io_channel.info.data.bytes_avail;
 	   int n;
 
 	if (0 == ba) {
 		esma_user_log_dbg("%s()/%s - connection close\n", __func__, me->name);
-		esma_msg(me, requester, NULL, 2);
-		esma_msg(me, me, NULL, 0);
-		return 0;
+
+		goto __recv_fail;
 	}
 
 	if (ba > dbuf->len - dbuf->cnt) {
@@ -256,36 +275,51 @@ int esma_rx_work_data_0(__unbox__)
 		if (EINTR == errno)
 			return 0;
 
-		esma_msg(me, requester, NULL, 2);
-		esma_msg(me, me, NULL, 0);
-		return 0;
+		goto __recv_fail;
 	}
 
 	dbuf->pos += n;
 	dbuf->cnt += n;
 
 	if (rxi->read_done(dbuf)) {
-		if (rxi->timeout_after_read) {
+		if (rxi->timeout_after_recv) {
 			esma_channel_set_interval(rxi->tick_after_recv, rxi->timeout_after_recv);
-			esma_msg(me, me, NULL, 0);
+			esma_msg(me, me, NULL, TO_DONE);
 			return 0;
 		}
 
-		esma_msg(me, requester, NULL, 1);
-		esma_msg(me, me, NULL, 0);
+		esma_msg(me, requester, NULL, RECV_SUCCESS);
+		esma_msg(me, me, NULL, TO_IDLE);
 		return 0;
 	}
+
+	return 0;
+
+__recv_fail:
+
+	esma_msg(me, requester, NULL, RECV_FAILURE);
+	esma_msg(me, me, NULL, TO_IDLE);
+	return 0;
+}
+
+int esma_rx_work_data_1(__unbox__)
+{
+	struct rx_info *rxi = me->data;
+	
+	esma_user_log_dbg("%s()/%s - recv: failed\n", __func__, me->name);
+	esma_msg(me, rxi->requester, NULL, RECV_FAILURE);
+	esma_msg(me, me, NULL, TO_IDLE);
 
 	return 0;
 }
 
 int esma_rx_work_tick_0(__unbox__)
 {
-	struct esma_rx_info *rxi = me->data;
+	struct rx_info *rxi = me->data;
 
 	esma_user_log_dbg("%s()/%s - recv: timeout\n", __func__, me->name);
-	esma_msg(me, rxi->requester, NULL, 2);
-	esma_msg(me, me, NULL, 0);
+	esma_msg(me, rxi->requester, NULL, RECV_FAILURE);
+	esma_msg(me, me, NULL, TO_IDLE);
 	return 0;
 }
 
@@ -295,24 +329,29 @@ int esma_rx_work_leave(__unbox__)
 }
 
 int esma_rx_done_enter(__unbox__)
-{
-	
+{		
 	return 0;
 }
 
 int esma_rx_done_tick_0(__unbox__)
 {
+	struct rx_info *rxi = me->data;
+
+	esma_user_log_dbg("%s()/s - recv for '%s' success\n", __func__, me->name, rxi->requester->name);
+	esma_msg(me, requester, NULL, RECV_SUCCESS);
+	esma_msg(me, me, NULL, TO_IDLE);
 	return 0;
 }
 
 int esma_rx_done_data_0(__unbox__)
 {
+	esma_msg(me, me, NULL, TO_WORK);
 	return 0;
 }
 
 int esma_rx_done_data_1(__unbox__)
 {
-	return 0;
+	return esma_rx_work_data_1(requester, me, dptr);;
 }
 
 int esma_rx_done_leave(__unbox__)

@@ -8,7 +8,7 @@
 
 #include "core/esma_objpool.h"
 
-int esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id);
-int esma_rx_run(struct esma *rx, struct esma_objpool *restroom);
+int  esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id);
+void esma_rx_run(struct esma *rx, struct esma_objpool *restroom);
 
 #endif

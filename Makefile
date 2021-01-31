@@ -21,6 +21,7 @@ all:
 	@$(MAKE) -C core
 	@$(MAKE) -C engine
 	@$(MAKE) -C tests
+	@$(MAKE) -C state_machines
 	@$(MAKE) -C programs
 
 clean:
@@ -36,4 +37,5 @@ cleanall:
 	@$(MAKE) cleanall -C core
 	@$(MAKE) cleanall -C engine
 	@$(MAKE) cleanall -C tests
+	@$(MAKE) cleanall -C state_machines
 	@$(MAKE) cleanall -C programs
