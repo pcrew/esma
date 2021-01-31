@@ -3,6 +3,8 @@
 #define ESMA_SM_DATA_H
 
 #include "core/esma_dbuf.h"
+#include "core/esma_socket.h"
+#include "core/esma_mempool.h"
 
 #include "common/numeric_types.h"
 
@@ -16,6 +18,12 @@ struct esma_io_context {
    	int			 timeout_after_recv;	   
 
 	read_done_f		 read_done;
+};
+
+/* esma_listener data */
+struct esma_listener_context {
+	struct esma_socket	*server;
+	struct esma_mempool	*socket_pool;
 };
 
 #endif

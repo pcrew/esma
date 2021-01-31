@@ -26,6 +26,14 @@ struct esma_socket {
 	socklen_t		addr_len;
 };
 
+static inline int esma_socket_invalid(struct esma_socket *sock)
+{
+	if (sock->fd < 0 || sock->type < 0 || sock->family < 0)
+		return 1;
+
+	return 0;
+}
+
 struct esma_socket *esma_socket_new();
    int esma_socket_init(struct esma_socket *sock);
    int esma_socket_clear(struct esma_socket *sock);
