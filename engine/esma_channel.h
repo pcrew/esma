@@ -50,6 +50,11 @@ struct esma_channel {
 	struct esma *owner;
 };
 
+static inline  u64 esma_channel_get_interval(struct esma_channel *ch)
+{
+	return ch->info.tick.interval_msec;
+}
+
 static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
 {
 	ch->info.tick.interval_msec = time;

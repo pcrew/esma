@@ -13,10 +13,16 @@ struct esma_array {
 	 u32 capacity;
 };
 
+#if 1
+#define esma_array_n(arr, n)	\
+	((n) >= (arr)->capacity) ? NULL : (arr)->items + (arr)->item_size * (n)
+
+#else
 static inline void *esma_array_n(struct esma_array *a, int n)
 {
 	return n >= a->capacity ? NULL : a->items + a->item_size * n;
 }
+#endif
 
 static inline void *esma_array_get_head(struct esma_array *a)
 {

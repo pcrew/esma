@@ -270,7 +270,7 @@ __send_msg:
 	return 0;
 
 __finish:
-	return 1;
+	return 0;
 
 __fail:
 	return 1;

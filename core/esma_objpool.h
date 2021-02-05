@@ -14,6 +14,11 @@ struct esma_objpool {
 	 u32  min_size;
 };
 
+static inline int esma_objpool_is_empty(struct esma_objpool *pool)
+{
+	return pool->size ? 1 : 0;
+}
+
 struct esma_objpool *esma_objpool_new(u32 capacity, u32 min_size, u32 capdelta);
 int esma_objpool_init(struct esma_objpool *pool, u32 capacity, u32 min_size, u32 capdelta);
 

@@ -103,7 +103,6 @@ int slave_idle_1(__unbox__)
 	return 0;
 
 __done:
-	esma_user_log_nrm("%s()/%s - some error; goto done\n", __func__, me->name);
 	esma_msg(me, me, NULL, 3);
 	return 0;
 }
@@ -137,17 +136,16 @@ int slave_recv_data_0(__unbox__)
 {
 	struct slave_info *si = me->data;
 	struct esma_dbuf *dbuf = &si->dbuf;
-//           u32 ba = me->io_channel.info.data.bytes_avail;
 	   u32 ba = esma_channel_bytes_avail(&me->io_channel);
-	u32 n;
+	   u32 n;
 
 	if (0 == ba) {	/* connection close */
 		esma_user_log_inf("%s()/%s - connection close\n", __func__, me->name);
 		goto __done;
 	}
 
-	if (ba > dbuf->len) {
-		int err = esma_dbuf_expand(dbuf, ba);
+	if (ba > dbuf->len - dbuf->cnt) {
+		int err = esma_dbuf_expand(dbuf, dbuf->len - dbuf->cnt + ba);
 		if (err) {
 			esma_user_log_err("%s()/%s - esma_dbuf_expand(): failed\n", __func__, me->name);
 			goto __done;

@@ -153,18 +153,12 @@ static void poll_reactor__wait(void)
 
 		if (revents & POLLIN)
 			e |= ESMA_POLLIN;
-
-		if (revents & POLLOUT)
+		else if (revents & POLLOUT)
 			e |= ESMA_POLLOUT;
-
-		if (revents & POLLERR)
+		else if (revents & POLLERR)
 			e |= ESMA_POLLERR;
-		
-		if (revents & POLLHUP)
+		else if (revents & POLLHUP)
 			e |= ESMA_POLLHUP;	
-
-		if (0 == e)
-			continue;
 
 		msg = esma_ring_buffer_put(msg_queue);
 		if (NULL == msg) {

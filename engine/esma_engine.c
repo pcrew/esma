@@ -37,7 +37,7 @@ int esma_engine_set_number_of_engines(int cap)
 
 	ngn_cap = cap;
 
-	printf("%s() - cap: %d\n", __func__, ngn_cap);
+	esma_engine_log_inf("%s() - cap: %d\n", __func__, ngn_cap);
 	err = esma_array_init(&engines, ngn_cap, sizeof(struct esma_engine_info));
 	if (err) {
 		esma_engine_log_ftl("%s() - esma_array_init(%d): failed\n", __func__, cap);
@@ -47,7 +47,7 @@ int esma_engine_set_number_of_engines(int cap)
 	return cap;
 }
 
-int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
+static int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 {
 	struct esma_channel *ch = &trans->ch;
 	   int fd;
@@ -73,13 +73,7 @@ int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 	return 0;
 }
 
-int _esma_set_data_trans(struct trans *trans, struct esma *esma)
-{
-	/* not needed */
-	return 0;
-}
-
-int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
+static int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
 {
 	struct esma_channel *ch = &trans->ch;
 	   int fd;
@@ -100,7 +94,7 @@ int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
 	return 0;
 }
 
-int _esma_register_channels(struct esma *esma)
+static int _esma_register_channels(struct esma *esma)
 {
 	int err;
 
@@ -382,30 +376,32 @@ void esma_engine_mod_io_channel(struct esma *esma, u32 events, int action)
 	}
 
 	switch (action) {
-		case IO_EVENT_ENABLE:
+	case IO_EVENT_ENABLE:
 
-			err = reactor->mod(esma->io_channel.fd, &esma->io_channel, events);
-			if (err) {
-				esma_engine_log_ftl("%s()/%s can't enable io channel\n",
-						__func__, esma->name);
-				exit(1);
-			}
-
-			break;
-
-		case IO_EVENT_DISABLE:
-
-			err = reactor->mod(esma->io_channel.fd, &esma->io_channel, 0);
-			if (err) {
-				esma_engine_log_ftl("%s()/%s cna't disable io channel\n",
-						__func__, esma->name);
-				exit(1);
-			}
-
-			break;
-
-		default:
+		err = reactor->mod(esma->io_channel.fd, &esma->io_channel, events);
+		if (err) {
+			esma_engine_log_ftl("%s()/%s - can't enable io channel\n",
+					__func__, esma->name);
 			exit(1);
+		}
+
+		break;
+
+	case IO_EVENT_DISABLE:
+
+		err = reactor->mod(esma->io_channel.fd, &esma->io_channel, 0);
+		if (err) {
+			esma_engine_log_ftl("%s()/%s - can't disable io channel\n",
+					__func__, esma->name);
+			exit(1);
+		}
+
+		break;
+
+	default:
+
+		esma_engine_log_ftl("%s()/%s - invalid action\n", __func__, esma->name);
+		exit(1);
 	}
 }
 
