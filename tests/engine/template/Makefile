@@ -6,13 +6,10 @@ OBJECTS = $(SOURCES:.c=.o)
 PROGRAM = test
 LDFLAGS = -ldl -lm
 
-CORE    = $(TOPDIR)/core/*.o
-ENGINE  = $(TOPDIR)/engine/esma_template.o
-
 all: $(PROGRAM)
 
-$(PROGRAM): $(OBJECTS) $(CORE) $(ENGINE)
-	$(CC) -rdynamic $(OBJECTS) $(OS) $(CORE) $(ENGINE) -o $@ $(LDFLAGS)
+$(PROGRAM): $(OBJECTS) $(CORE) $(ENGINE) $(UTILS)
+	$(CC) -rdynamic $(OBJECTS) $(CORE) $(ENGINE) $(UTILS) -o $@ $(LDFLAGS)
 
 clean:
 	@rm -fv $(OBJECTS)

@@ -6,12 +6,10 @@ OBJECTS = $(SOURCES:.c=.o)
 PROGRAM = test
 LDFLAGS = -ldl -lm
 
-CORE = $(TOPDIR)/core/*.o
-
 all: $(PROGRAM)
 
 $(PROGRAM): $(OBJECTS) $(CORE)
-	$(CC) -rdynamic $(OBJECTS) $(CORE) $(OS) -o $@ $(LDFLAGS)
+	$(CC) -rdynamic $(OBJECTS) $(CORE) -o $@ $(LDFLAGS)
 
 clean:
 	@rm -fv $(OBJECTS)

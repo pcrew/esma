@@ -9,7 +9,14 @@ CFLAGS += -Wall -I$(INCDIR) -O2 -D_FILE_OFFSET_BITS=64
 
 export CC STRIP CFLAGS TOPDIR INCDIR
 
-aill:
+CORE = $(TOPDIR)/core/*.o
+UTILS = $(TOPDIR)/utils/*.o
+ENGINE = $(TOPDIR)/engine/*.o
+ENGINE_MODULES = $(TOPDIR)/engine/modules/*.o
+
+export CORE UTILS ENGINE ENGINE_MODULES
+
+all:
 	@$(MAKE) -C utils
 	@$(MAKE) -C core
 	@$(MAKE) -C engine
@@ -19,12 +26,10 @@ aill:
 clean:
 	@rm -vf `find . -name *.o`
 	@rm -vf `find . -name *.sw?`
-	@rm -vf `find . -name *.sw?`
 
 cleanall:
 	@rm -vf `find . -name *.o`
 	@rm -vf `find . -name *.so`
-	@rm -vf `find . -name *.sw?`
 	@rm -vf `find . -name *.sw?`
 
 	@$(MAKE) cleanall -C utils
