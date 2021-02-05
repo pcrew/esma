@@ -8,6 +8,7 @@
 #include "esma_sm_data.h"
 
 #include "core/esma_dbuf.h"
+#include "core/esma_alloc.h"
 #include "core/esma_logger.h"
 
 #define TO_IDLE	0
@@ -69,6 +70,7 @@ int esma_listener_init(struct esma *listener, char *name, char *tmpl_path, int n
 
 __set_basic:
 
+	esma_user_log_dbg("%s()/%s - basic machine\n", __func__, name);
 	err = esma_template_set_by_dbuf(&tmpl, &esma_listener_tmpl_dbuf);
 	if (err) {
 		esma_user_log_err("%s()/%s: set esma_template basic: failed\n",
@@ -80,6 +82,7 @@ __set_basic:
 
 __set_custom:
 
+	esma_user_log_dbg("%s()/%s - custom machine\n", __func__, name);
 	err = esma_template_set_by_path(&tmpl, tmpl_path);
 	if (err) {
 		esma_user_log_err("%s()/%s: esma_template_set('%s'): failed\n",
@@ -126,7 +129,7 @@ int esma_listener_init_enter(__unbox__)
 {
 	struct listener_info *li = NULL;
 	
-	li = malloc(sizeof(struct listener_info));
+	li = esma_malloc(sizeof(struct listener_info));
 	if (NULL == li) {
 		esma_user_log_err("%s()/%s - can't allocate memory for info section\n",
 				__func__, me->name);
@@ -139,7 +142,7 @@ int esma_listener_init_enter(__unbox__)
 	return 0;
 }
 
-int _listener_init(struct esma *me, struct esma *master, void *dptr)
+static int _listener_init(struct esma *me, struct esma *master, void *dptr)
 {
 	struct listener_info *li = me->data;
 	struct esma_listener_context *ctx = dptr;
@@ -209,6 +212,8 @@ int esma_listener_work_enter(__unbox__)
 	return 0;
 }
 
+/* In this action we always sand SUCCESS message for master. But, if we can't accept new client, then dptr is NULL;
+ * esle dptr is client socket. */
 int esma_listener_work_data_0(__unbox__)
 {
 	struct listener_info *li = me->data;
@@ -232,6 +237,8 @@ int esma_listener_work_data_0(__unbox__)
 		esma_mempool_put_block(li->socket_pool, client);
 		goto __ret;
 	}
+	esma_user_log_dbg("%s()/%s - new client successfuly accepted\n",
+			__func__, me->name);
 
 	esma_msg(me, li->master, client, LISTEN_SUCCESS);
 	return 0;

@@ -8,6 +8,7 @@
 #include "esma_sm_data.h"
 
 #include "core/esma_dbuf.h"
+#include "core/esma_alloc.h"
 #include "core/esma_logger.h"
 
 #define TO_WORK	0
@@ -138,7 +139,7 @@ struct rx_info {
 	u32			 status;
 };
 
-void _rx_done(struct esma *me, struct esma *requester, u32 code)
+int _rx_done(struct esma *me, struct esma *requester, u32 code)
 {
 	struct rx_info *rxi = me->data;
 
@@ -147,13 +148,14 @@ void _rx_done(struct esma *me, struct esma *requester, u32 code)
 
 	esma_msg(me, me, NULL, TO_IDLE);
 	esma_msg(me, requester, NULL, code);
+	return 0;
 }
 
 int esma_rx_init_enter(__unbox__)
 {
 	struct rx_info *rxi = NULL;
 	
-	rxi = malloc(sizeof(struct rx_info));
+	rxi = esma_malloc(sizeof(struct rx_info));
 	if (NULL == rxi) {
 		esma_user_log_err("%s()/%s - can't allocate memory for info section\n",
 				__func__, me->name);
@@ -163,13 +165,13 @@ int esma_rx_init_enter(__unbox__)
 	rxi->restroom = dptr;
 	rxi->tick_waiting = esma_get_channel(me, "work", 0, ESMA_CH_TICK);
 	if (NULL == rxi->tick_waiting) {
-		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'work' state. Did you add tick_0 in esma file?\n",
+		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'work' state. Did you add tick_0 for work state?\n",
 				__func__, me->name);
 	}
 
 	rxi->tick_after_recv = esma_get_channel(me, "done", 0, ESMA_CH_TICK);
 	if (NULL == rxi->tick_after_recv) {
-		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'done' state. Did you add tick_0 in esma file?\n",
+		esma_user_log_wrn("%s()/%s - can't get channel 0 for 'done' state. Did you add tick_0 for done state?\n",
 				__func__, me->name);
 	}
 
@@ -302,16 +304,14 @@ int esma_rx_work_data_0(__unbox__)
 			return 0;
 		}
 
-		_rx_done(me, requester, RECV_SUCCESS);
-		return 0;
+		return _rx_done(me, requester, RECV_SUCCESS);
 	}
 
 	return 0;
 
 __recv_fail:
 
-	_rx_done(me, requester, RECV_FAILURE);
-	return 0;
+	return _rx_done(me, requester, RECV_FAILURE);
 }
 
 int esma_rx_work_data_1(__unbox__)
@@ -319,9 +319,8 @@ int esma_rx_work_data_1(__unbox__)
 	struct rx_info *rxi = me->data;
 
 	esma_user_log_dbg("%s()/%s - recv: failed\n", __func__, me->name);
-	_rx_done(me, rxi->requester, RECV_FAILURE);	
 
-	return 0;
+	return _rx_done(me, rxi->requester, RECV_FAILURE);	
 }
 
 int esma_rx_work_tick_0(__unbox__)
@@ -329,9 +328,8 @@ int esma_rx_work_tick_0(__unbox__)
 	struct rx_info *rxi = me->data;
 
 	esma_user_log_dbg("%s()/%s - recv: timeout\n", __func__, me->name);
-	_rx_done(me, rxi->requester, RECV_FAILURE);	
-	
-	return 0;
+
+	return _rx_done(me, rxi->requester, RECV_FAILURE);	
 }
 
 int esma_rx_work_leave(__unbox__)
@@ -350,8 +348,7 @@ int esma_rx_done_tick_0(__unbox__)
 
 	esma_user_log_dbg("%s()/s - recv for '%s' success\n", __func__, me->name, rxi->requester->name);
 
-	_rx_done(me, rxi->requester, RECV_SUCCESS);
-	return 0;
+	return _rx_done(me, rxi->requester, RECV_SUCCESS);
 }
 
 int esma_rx_done_data_0(__unbox__)

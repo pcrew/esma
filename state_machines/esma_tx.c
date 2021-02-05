@@ -8,6 +8,7 @@
 #include "esma_sm_data.h"
 
 #include "core/esma_dbuf.h"
+#include "core/esma_alloc.h"
 #include "core/esma_logger.h"
 
 #define TO_WORK	0
@@ -29,7 +30,7 @@ char *esma_tx_tmpl =
 	"		idle -> self: 1;				"
 	"		idle -> work: 0;				"
 	"								"
-	"		work -> self: tick_0: 0ms: ESMA_TM_ONESHOT;	"
+	"		work -> self: tick_0: 1000ms: ESMA_TM_ONESHOT;	"
 	"		work -> self: data_0: ESMA_POLLOUT;		"
 	"		work -> self: data_1: ESMA_POLLERR;		"
 	"		work -> idle: 0;				"
@@ -125,7 +126,7 @@ int esma_tx_init_enter(__unbox__)
 {
 	struct tx_info *txi = NULL;
 	
-	txi = malloc(sizeof(struct tx_info));
+	txi = esma_malloc(sizeof(struct tx_info));
 	if (NULL == txi) {
 		esma_user_log_err("%s()/%s - can't allocate memory for info section\n",
 				__func__, me->name);
