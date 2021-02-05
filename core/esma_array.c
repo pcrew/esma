@@ -57,10 +57,11 @@ static int _esma_array_expand(struct esma_array *arr)
 	new_cap = arr->capacity << 1;
 
 	items = esma_realloc(arr->items, new_cap * arr->item_size);
-	if (unlikely(NULL == items))
+	if (unlikely(NULL == items)) {
 		esma_core_log_err("%s() - esma_realloc(%ld): failed; prev size: %ld\n",
 				__func__, new_cap * arr->item_size, arr->capacity* arr->item_size);
 		return 1;
+	}
 
 	arr->items = items;
 	arr->capacity = new_cap;
