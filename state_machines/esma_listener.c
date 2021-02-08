@@ -18,7 +18,7 @@
 #define LISTEN_SUCCESS	1
 #define LISTEN_FAILURE	2
 
-char *esma_listener_tmpl = 
+static char *li_tmpl = 
 	"	states {						"
 	"		work;						"
 	"		idle;						"
@@ -43,15 +43,20 @@ char *esma_listener_tmpl =
 /* Public functions */
 int esma_listener_init(struct esma *listener, char *name, char *tmpl_path, int ngn_id)
 {
-	struct esma_dbuf esma_listener_tmpl_dbuf;
+	struct esma_dbuf tmpl_dbuf;
 	struct esma_template tmpl;
 	   int err;
 
-	esma_dbuf_set(&esma_listener_tmpl_dbuf, esma_listener_tmpl);
+	esma_dbuf_set(&tmpl_dbuf, li_tmpl);
 
 	if (NULL == name)
 		name = "nameless";
 
+	err = esma_template_init(&tmpl, "esma_listener");
+	if (err) {
+		esma_user_log_err("%s()/%s - can't init template\n", __func__, name);
+		return 1;
+	}
 	if (ngn_id < 0) {
 		esma_user_log_err("%s()/%s - ngn_id < 0\n", __func__, name);
 		return 1;
@@ -71,7 +76,10 @@ int esma_listener_init(struct esma *listener, char *name, char *tmpl_path, int n
 __set_basic:
 
 	esma_user_log_dbg("%s()/%s - basic machine\n", __func__, name);
-	err = esma_template_set_by_dbuf(&tmpl, &esma_listener_tmpl_dbuf);
+	printf("dbuf: cnt: %d\n", tmpl_dbuf.cnt);
+	printf("dbuf: len: %d\n", tmpl_dbuf.len);
+	printf("size: %ld\n", strlen(li_tmpl) - 1);
+	err = esma_template_set_by_dbuf(&tmpl, &tmpl_dbuf);
 	if (err) {
 		esma_user_log_err("%s()/%s: set esma_template basic: failed\n",
 				__func__, name);
@@ -137,8 +145,9 @@ int esma_listener_init_enter(__unbox__)
 	}
 
 	li->master = master;
-
 	me->data = li;
+
+	esma_user_log_dbg("%s()/%s - successfuly started\n", __func__, me->name);
 	return 0;
 }
 
@@ -297,3 +306,20 @@ int esma_listener_idle_1(__unbox__)
 	esma_msg(me, me, NULL, TO_WORK);
 	return 0;
 }
+
+int esma_listener_idle_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_listener_fini_enter(__unbox__)
+{
+	return 0;
+}
+
+int esma_listener_fini_leave(__unbox__)
+{
+	return 0;
+}
+
+

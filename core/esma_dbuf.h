@@ -2,6 +2,8 @@
 #ifndef ESMA_DBUF_H
 #define ESMA_DBUF_H
 
+#include <string.h>
+
 #include "common/numeric_types.h"
 
 struct esma_dbuf {
@@ -12,10 +14,11 @@ struct esma_dbuf {
 };
 
 #define esma_dbuf(str) { (u8 *) (str), (u8 *) (str), 0, sizeof(str) - 1 }
+
 #define esma_dbuf_set(dbuf, str) 	\
 	(dbuf)->loc = (u8 *) str;	\
 	(dbuf)->pos = (dbuf)->loc;	\
-	(dbuf)->cnt = sizeof(str) - 1;	\
+	(dbuf)->cnt = strlen(str) - 1;	\
 	(dbuf)->len = (dbuf)->cnt;
 
 struct esma_dbuf *new_esma_dbuf(u32 len);
