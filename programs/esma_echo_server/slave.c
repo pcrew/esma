@@ -137,6 +137,7 @@ int slave_recv_data_0(__unbox__)
 	struct slave_info *si = me->data;
 	struct esma_dbuf *dbuf = &si->dbuf;
 	   u32 ba = esma_channel_bytes_avail(&me->io_channel);
+	   u32 space = dbuf->len - dbuf->cnt;
 	   u32 n;
 
 	if (0 == ba) {	/* connection close */
@@ -144,8 +145,8 @@ int slave_recv_data_0(__unbox__)
 		goto __done;
 	}
 
-	if (ba > dbuf->len - dbuf->cnt) {
-		int err = esma_dbuf_expand(dbuf, dbuf->len - dbuf->cnt + ba);
+	if (ba > space) {
+		int err = esma_dbuf_expand(dbuf, dbuf->len + ba - space);
 		if (err) {
 			esma_user_log_err("%s()/%s - esma_dbuf_expand(): failed\n", __func__, me->name);
 			goto __done;

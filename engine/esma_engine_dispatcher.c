@@ -250,13 +250,7 @@ __send_msg:
 
 	/* only for fini state; need to optimize */
 	if (unlikely(!strcmp(state->name, "fini"))) {
-		err = state->leave(src, dst, ptr);
-		if (err) {
-			esma_dispatcher_log_dbg("%s() - fini state\n", __func__);
-			goto __finish;
-		}
-
-		return 0;
+		return state->leave(src, dst, ptr);
 	}
 
 	err = __start_channels(state);
@@ -267,9 +261,6 @@ __send_msg:
 	}
 	/* Moore section leave */
 
-	return 0;
-
-__finish:
 	return 0;
 
 __fail:
