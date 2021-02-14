@@ -18,7 +18,7 @@
 #define RECV_SUCCESS	1
 #define RECV_FAILURE	2
 
-char *esma_rx_tmpl = 
+char *rx_tmpl = 
 	"	states {						"
 	"		idle;						"
 	"		work;						"
@@ -38,7 +38,7 @@ char *esma_rx_tmpl =
 	"		work -> done: 0;				"
 	"		work -> idle: 1;				"
 	"								"
-	"		done -> self: tick_0: 100ms: ESMA_TM_ONESHOT	"
+	"		done -> self: tick_0: 100ms: ESMA_TM_ONESHOT;	"
 	"		done -> self: data_0: ESMA_POLLIN;		"
 	"		done -> self: data_1: ESMA_POLLERR;		"
 	"		done -> work: 0;				"	
@@ -50,14 +50,20 @@ char *esma_rx_tmpl =
 /* Public functions */
 int esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id)
 {
-	struct esma_dbuf esma_rx_tmpl_dbuf;
+	struct esma_dbuf tmpl_dbuf;
 	struct esma_template tmpl;
 	   int err;
 
-	esma_dbuf_set(&esma_rx_tmpl_dbuf, esma_rx_tmpl);
+	esma_dbuf_set(&tmpl_dbuf, rx_tmpl);
 
 	if (NULL == name)
 		name = "nameless";
+
+	err = esma_template_init(&tmpl, "esma_rx");
+	if (err) {
+		esma_user_log_err("%s()/%s - can't init template\n", __func__, name);
+		return 1;
+	}
 
 	if (ngn_id < 0) {
 		esma_user_log_err("%s()/%s - ngn_id < 0\n", __func__, name);
@@ -77,7 +83,7 @@ int esma_rx_init(struct esma *rx, char *name, char *tmpl_path, int ngn_id)
 
 __set_basic:
 
-	err = esma_template_set_by_dbuf(&tmpl, &esma_rx_tmpl_dbuf);
+	err = esma_template_set_by_dbuf(&tmpl, &tmpl_dbuf);
 	if (err) {
 		esma_user_log_err("%s()/%s: set esma_template basic: failed\n",
 				__func__, name);
@@ -363,6 +369,16 @@ int esma_rx_done_data_1(__unbox__)
 }
 
 int esma_rx_done_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_fini_enter(__unbox__)
+{
+	return 0;
+}
+
+int esma_rx_fini_leave(__unbox__)
 {
 	return 0;
 }

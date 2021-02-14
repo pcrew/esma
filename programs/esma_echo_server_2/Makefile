@@ -1,7 +1,7 @@
 
 .PHONY: clean cleanall
 
-SOURCES = main.c
+SOURCES = main.c manager.c
 OBJECTS = $(SOURCES:.c=.o)
 PROGRAM = test
 LDFLAGS = -ldl

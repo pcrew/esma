@@ -155,7 +155,6 @@ static int _listener_init(struct esma *me, struct esma *master, void *dptr)
 {
 	struct listener_info *li = me->data;
 	struct esma_listener_context *ctx = dptr;
-	   int err = 0;
 
 	esma_engine_free_io_channel(me);
 
@@ -173,10 +172,10 @@ static int _listener_init(struct esma *me, struct esma *master, void *dptr)
 	}
 
 	if (NULL == ctx->socket_pool) {
-		err = esma_mempool_init(ctx->socket_pool, sizeof(struct esma_socket), MEMPOOL_SMALL_BLOCK);
+		ctx->socket_pool = esma_mempool_new(sizeof(struct esma_socket), MEMPOOL_SMALL_BLOCK);
 	}
 
-	if (err) {
+	if (NULL == ctx->socket_pool) {
 		esma_user_log_err("%s()/%s - can't create socket mempool\n",
 				__func__, me->name);
 		return 1;
@@ -194,12 +193,18 @@ int esma_listener_init_1(__unbox__)
 {
 	int err;
 
+	esma_user_log_dbg("%s()/%s - get message from '%s'\n",
+			__func__, me->name, master->name);
+
 	err = _listener_init(me, master, dptr);
 	if (err) {
 		esma_msg(me, me, NULL, TO_IDLE);
 		esma_msg(me, master, NULL, LISTEN_FAILURE);
 		return 0;
 	}
+
+	esma_user_log_dbg("%s()/%s - io successfuly prepare\n",
+			__func__, me->name);
 
 	esma_msg(me, me, NULL, TO_WORK);
 	return 0;
@@ -213,11 +218,14 @@ int esma_listener_init_leave(__unbox__)
 int esma_listener_work_enter(__unbox__)
 {
 	struct listener_info *li = me->data;
+
+	esma_socket_listen(li->server, 128);
 	
 	esma_engine_init_io_channel(me, li->server->fd);
 	esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
 	me->io_channel.flags |= ESMA_LISTENING_CHANNEL;
-	
+
+	esma_user_log_nrm("%s()/%s - start working.\n", __func__, me->name);	
 	return 0;
 }
 

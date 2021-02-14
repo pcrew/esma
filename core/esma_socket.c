@@ -18,7 +18,6 @@ int esma_socket_init(struct esma_socket *sock)
 		return 1;
 
 	sock->fd = -1;
-	sock->type = -1;
 	sock->family = -1;
 
 	memset(&sock->addr, 0, sizeof(sock->addr));

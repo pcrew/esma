@@ -1,0 +1,19 @@
+
+states {
+	idle;
+	work;
+};
+
+trans {
+	init -> idle: 0;
+	init -> fini: 3;
+
+	idle -> self: 2;
+	idle -> self: 1;
+	idle -> work: 0;
+	
+	work -> self: 2;
+	work -> self: 1;
+	work -> idle: 0;
+	work -> fini: 3;
+};

@@ -50,6 +50,12 @@ int esma_tx_init(struct esma *tx, char *name, char *tmpl_path, int ngn_id)
 	if (NULL == name)
 		name = "nameless";
 
+	err = esma_template_init(&tmpl, "esma_tx");
+	if (err) {
+		esma_user_log_err("%s()/%s - can't init template\n", __func__, name);
+		return 1;
+	}
+
 	if (ngn_id < 0) {
 		esma_user_log_err("%s()/%s - ngn_id < 0\n", __func__, name);
 		return 1;
@@ -286,6 +292,16 @@ int esma_tx_work_tick_0(__unbox__)
 }
 
 int esma_tx_work_leave(__unbox__)
+{
+	return 0;
+}
+
+int esma_tx_fini_enter(__unbox__)
+{
+	return 0;
+}
+
+int esma_tx_fini_leave(__unbox__)
 {
 	return 0;
 }
