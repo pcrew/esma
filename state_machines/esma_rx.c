@@ -12,8 +12,8 @@
 #include "core/esma_logger.h"
 
 #define TO_WORK	0
-#define TO_IDLE	1
-#define TO_DONE	0
+#define TO_IDLE	0
+#define TO_DONE	1
 
 #define RECV_SUCCESS	1
 #define RECV_FAILURE	2
@@ -35,14 +35,14 @@ char *rx_tmpl =
 	"		work -> self: tick_0: 0ms: ESMA_TM_ONESHOT;	"
 	"		work -> self: data_0: ESMA_POLLIN;		"
 	"		work -> self: data_1: ESMA_POLLERR;		"
-	"		work -> done: 0;				"
-	"		work -> idle: 1;				"
+	"		work -> done: 1;				"
+	"		work -> idle: 0;				"
 	"								"
 	"		done -> self: tick_0: 100ms: ESMA_TM_ONESHOT;	"
 	"		done -> self: data_0: ESMA_POLLIN;		"
 	"		done -> self: data_1: ESMA_POLLERR;		"
-	"		done -> work: 0;				"	
-	"		done -> idle: 1;				"
+	"		done -> work: 1;				"	
+	"		done -> idle: 0;				"
 	"	};							"
 	"								"
 ;
