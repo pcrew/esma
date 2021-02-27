@@ -18,12 +18,12 @@ static inline void *esma_array_n(struct esma_array *a, int n)
 	return n >= a->capacity ? NULL : a->items + a->item_size * n;
 }
 
-static inline void *esma_array_get_head(struct esma_array *a)
+static inline void *esma_array_get_tail(struct esma_array *a)
 {
 	return a->nitems ? a->items + a->item_size * (a->nitems - 1) : NULL;
 }
 
-static inline void *esma_array_get_tail(struct esma_array *a)
+static inline void *esma_array_get_head(struct esma_array *a)
 {
 	return a->items;
 }
