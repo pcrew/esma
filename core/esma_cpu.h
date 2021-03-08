@@ -60,7 +60,5 @@ static inline u64 esma_rdtscp(void)
 #define esma_sfence() __asm__ __volatile__("sfence" ::: "memory");
 
 #endif	// #if !__ARM__
-	
-#define esma_membar() __asm__ __volatile__("" ::: "memory");
 
 #endif
