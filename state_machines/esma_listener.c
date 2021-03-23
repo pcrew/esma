@@ -181,6 +181,7 @@ static int _listener_init(struct esma *me, struct esma *master, void *dptr)
 		return 1;
 	}
 
+	li->master = master;
 	li->server = ctx->server;
 	li->socket_pool = ctx->socket_pool;
 

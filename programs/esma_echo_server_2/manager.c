@@ -127,6 +127,36 @@ static int _manager_init_and_start_machines(struct esma *manager)
 		esma_run(tx, objpool);
 	}
 
+#define NWORKERS	128
+	objpool = &mi->worker_pool;
+	err = esma_objpool_init(objpool, 128, 0, 0);
+	if (err) {
+		esma_user_log_err("%s()/%s - can't init objpool for worker machines\n",
+				__func__, manager->name);
+		exit(1);
+	}
+
+	for (int i = 0; i < NWORKERS; i++) {
+		struct esma *worker = esma_mempool_get_block(mempool);
+		  char name[64];
+
+		if (NULL == worker) {
+			esma_user_log_ftl("%s()/%s - can't get block from mempool\n",
+					__func__, manager->name);
+			exit(1);
+		}
+
+		err = esma_objpool_put(objpool, worker);
+		if (err) {
+			esma_user_log_ftl("%s()/%s - can't put TX '%s' to objpool\n",
+					__func__, manager->name, name);
+			exit(1);
+		}
+	
+		sprintf(name, "WORKER_%d", i);
+		esma_user_log_nrm("%s(): name: %s\n", __func__, name);
+
+	}	
 
 	return 0;	
 }
