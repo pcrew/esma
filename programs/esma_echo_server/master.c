@@ -142,13 +142,13 @@ static int __master_init_slaves(struct esma *master)
 
 		sprintf(name, "slave_%d", i);
 
-		err = esma_init(slave, name, &slave_tmpl, 0);
+		err = esma_engine_init_machine(slave, name, &slave_tmpl, 0);
 		if (err) {
-			esma_user_log_err("%s()/%s - esma_init(slave: '%s'): failed\n", __func__, master->name, name);
+			esma_user_log_err("%s()/%s - esma_engine_init_machine(slave: '%s'): failed\n", __func__, master->name, name);
 			goto __fail;
 		}
 
-		esma_run(slave, &mi->slaves);
+		esma_engine_run_machine(slave, &mi->slaves);
 	}
 
 	return 0;
@@ -183,12 +183,12 @@ int master_init_enter(__unbox__)
 
 	esma_user_log_nrm("%s()/%s - successfuly inited\n", __func__, me->name);
 
-	esma_msg(me, me, NULL, 0);
+	esma_engine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __fini:
 	esma_user_log_ftl("%s()/%s - can't start\n", __func__, me->name);
-	esma_msg(me, me, NULL, 3);
+	esma_engine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -232,7 +232,7 @@ int master_work_tick_0(__unbox__)
 int master_work_tick_3(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - timeout; go to fini\n", __func__, me->name);
-	esma_msg(me, me, NULL, 3);
+	esma_engine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -271,14 +271,14 @@ int master_work_data_0(__unbox__)
 		return 0;
 	}
 
-	esma_msg(me, slave, &mi->socket, 1);
+	esma_engine_send_msg(me, slave, &mi->socket, 1);
 	return 0;
 }
 
 int master_work_data_1(__unbox__)
 {
 	esma_user_log_ftl("%s()/%s - have fail with io channel. Exiting\n", __func__, me->name);
-	esma_msg(me, me, NULL, 3);
+	esma_engine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 

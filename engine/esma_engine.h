@@ -65,24 +65,23 @@ struct esma {
 
 int esma_engine_set_number_of_engines(int cnt);
 
-   int esma_init(struct esma *esma, char *name, struct esma_template *tmpl, u32 engine_id);
-struct esma *esma_new(struct esma_template *et, char *name, u32 engine_id);
-  void       esma_del(struct esma *esma);
-  void       esma_run(struct esma *esma, void *dptr);
-  void       esma_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
-  void	     esma_stop(struct esma *esma);
+struct esma *esma_engine_new_machine(struct esma_template *et, char *name, u32 engine_id);
+   int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl, u32 engine_id);
+  void esma_engine_del_machine(struct esma *esma);
+  void esma_engine_run_machine(struct esma *esma, void *dptr);
+  void esma_engine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
 
- int esma_engine_init(u32 engine_id);
- int esma_engine_exec(u32 engine_id);
-void esma_engine_wait(void);	/* use only in main thread */
+   int esma_engine_init(u32 engine_id);
+   int esma_engine_exec(u32 engine_id);
+  void esma_engine_wait(void);	/* use only in main thread */
 
-void esma_engine_init_io_channel(struct esma *self, int fd);
-void esma_engine_free_io_channel(struct esma *self);
-void esma_engine_mod_io_channel(struct esma *self, u32 events, int action);
+  void esma_engine_init_io_channel(struct esma *self, int fd);
+  void esma_engine_free_io_channel(struct esma *self);
+  void esma_engine_mod_io_channel(struct esma *self, u32 events, int action);
 
- int esma_engine_mod_channel(struct esma_channel *ch, u32 events);
- int esma_engine_arm_tick_channel(struct esma_channel *ch);
- int esma_engine_disarm_tick_channel(struct esma_channel *ch);
+   int esma_engine_mod_channel(struct esma_channel *ch, u32 events);
+   int esma_engine_arm_tick_channel(struct esma_channel *ch);
+   int esma_engine_disarm_tick_channel(struct esma_channel *ch);
 
 /* helper functions */
 struct state *esma_find_state_by_name(struct esma *esma, char *name);

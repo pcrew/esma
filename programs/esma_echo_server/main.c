@@ -77,10 +77,9 @@ int main(int argc, char **argv)
 
 	err = esma_template_init(&tmpl, "master");
 	if (err) {
-		esma_user_log_ftl("esma_template_init('master')... failed\n", "");
+		esma_user_log_ftl("esma_template_init('master'): failed\n", "");
 		return 1;
 	}
-	esma_user_log_nrm("esma_template_init('master')... ok\n", "");
 
 #if 1
 	err = esma_template_set_by_path(&tmpl, "master.esma");
@@ -89,29 +88,26 @@ int main(int argc, char **argv)
 #endif
 
 	if (err) {
-		esma_user_log_ftl("esma_template_set('master')... failed\n", "");
+		esma_user_log_ftl("esma_template_set('master'): failed\n", "");
 		return 1;
 	}
-	esma_user_log_nrm("esma_template_set('master')... ok\n", "");
 
 	err = esma_engine_init(0);
 	if (err) {
-		esma_user_log_ftl("esma_engine_init(0)... failed\n", "");
+		esma_user_log_ftl("esma_engine_init(0): failed\n", "");
 		return 1;
 	}
-	esma_user_log_nrm("esma_engine_init(0)... ok\n", "");
 
-	err = esma_init(&master, "master", &tmpl, 0);
+	err = esma_engine_init_machine(&master, "master", &tmpl, 0);
 	if (err) {
-		esma_user_log_ftl("esma_init('master')... failed\n", "");
+		esma_user_log_ftl("esma_engine_init_machine('master'): failed\n", "");
 		printf("failed\n");
 		return 0;
 	}
-	esma_user_log_nrm("esma_init('master')... ok\n", "");
 
 	esma_user_log_nrm("procces '%d' has been started\n", pid);
 
-	esma_run(&master, &port);
+	esma_engine_run_machine(&master, &port);
 
 	while (1) {
 		ret = esma_engine_exec(0);

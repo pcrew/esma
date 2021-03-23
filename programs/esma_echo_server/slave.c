@@ -47,11 +47,11 @@ int slave_init_enter(__unbox__)
 	me->data = si;
 
 	esma_user_log_nrm("%s()/%s - successfuly inited\n", __func__, me->name);
-	esma_msg(me, me, NULL, 0);
+	esma_engine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __fini:
-	esma_msg(me, me, NULL, 3);
+	esma_engine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -99,11 +99,11 @@ int slave_idle_1(__unbox__)
 	esma_engine_init_io_channel(me, si->socket.fd);
 
 	esma_user_log_nrm("%s()/%s - start working\n", __func__, me->name);
-	esma_msg(me, me, NULL, 0);
+	esma_engine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __done:
-	esma_msg(me, me, NULL, 3);
+	esma_engine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -128,7 +128,7 @@ int slave_recv_enter(__unbox__)
 int slave_recv_tick_0(__unbox__)
 {
 	esma_user_log_inf("%s()/%s - recv data: timeout\n", __func__, me->name);
-	esma_msg(me, me, NULL, 1);
+	esma_engine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -167,7 +167,7 @@ int slave_recv_data_0(__unbox__)
 	if (n == ba) {	/* read all data */
 	        dbuf->pos = dbuf->loc;	/* need for send */
 		esma_user_log_nrm("%s()/%s - all data received\n", __func__, me->name);
-		esma_msg(me, me, NULL, 0);
+		esma_engine_send_msg(me, me, NULL, 0);
 		return 0;
 	}
 
@@ -177,14 +177,14 @@ int slave_recv_data_0(__unbox__)
 	return 0;
 
 __done:
-	esma_msg(me, me, NULL, 1);
+	esma_engine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
 int slave_recv_data_1(__unbox__)
 {
 	esma_user_log_err("%s()/%s - connection error\n", __func__, me->name);
-	esma_msg(me, me, NULL, 1);
+	esma_engine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -204,7 +204,7 @@ int slave_send_enter(__unbox__)
 int slave_send_tick_0(__unbox__)
 {
 	esma_user_log_wrn("%s()/%s - send data: timeout\n", __func__, me->name);
-	esma_msg(me, me, NULL, 1);
+	esma_engine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -225,7 +225,7 @@ int slave_send_data_0(__unbox__)
 
 	if (n == dbuf->cnt) {
 		esma_engine_mod_io_channel(me, 0, IO_EVENT_DISABLE);
-		esma_msg(me, me, NULL, 0);
+		esma_engine_send_msg(me, me, NULL, 0);
 		return 0;
 	}
 
@@ -239,7 +239,7 @@ __send_error:
 
 	esma_dbuf_clear(dbuf);
 	esma_user_log_err("%s()/%s - sending error\n", __func__, me->name);
-	esma_msg(me, me, NULL, 1);
+	esma_engine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -272,7 +272,7 @@ int slave_done_enter(__unbox__)
 	}
 
 	esma_user_log_nrm("%s()/%s - finished work with client\n", __func__, me->name);
-	esma_msg(me, me, NULL, 0);
+	esma_engine_send_msg(me, me, NULL, 0);
 	return 0;
 }
 

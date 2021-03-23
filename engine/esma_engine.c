@@ -129,7 +129,7 @@ __fail:
 	return 1;
 }
 
-int esma_init(struct esma *esma, char *name, struct esma_template *tmpl, u32 ngn_id)
+int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl, u32 ngn_id)
 {
 	int err;
 
@@ -157,7 +157,7 @@ int esma_init(struct esma *esma, char *name, struct esma_template *tmpl, u32 ngn
 	return 0;
 }
 
-struct esma *esma_new(struct esma_template *tmpl, char *name, u32 ngn_id)
+struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name, u32 ngn_id)
 {
 	struct esma *esma = NULL;
 	   int err;
@@ -173,10 +173,10 @@ struct esma *esma_new(struct esma_template *tmpl, char *name, u32 ngn_id)
 		return NULL;
 	}
 
-	err = esma_init(esma, name, tmpl, ngn_id);
+	err = esma_engine_init_machine(esma, name, tmpl, ngn_id);
 	if (err) {
 		esma_engine_log_ftl("%s()/%s - can't init machine\n", __func__, tmpl->name);
-		esma_del(esma);
+		esma_engine_del_machine(esma);
 		esma_free(esma);
 		return NULL;
 	}
@@ -184,7 +184,7 @@ struct esma *esma_new(struct esma_template *tmpl, char *name, u32 ngn_id)
 	return esma;
 }
 
-void esma_run(struct esma *esma, void *dptr)
+void esma_engine_run_machine(struct esma *esma, void *dptr)
 {
 	struct state *state;
 
@@ -204,7 +204,7 @@ void esma_run(struct esma *esma, void *dptr)
 	state->enter(esma, esma, dptr);
 }
 
-void esma_del(struct esma *esma)
+void esma_engine_del_machine(struct esma *esma)
 {
 	struct state *fini;
 
@@ -222,7 +222,7 @@ void esma_del(struct esma *esma)
 	esma_array_free(&esma->states);
 }
 
-void esma_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
+void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
 {
 	struct esma_engine_info *ei;
 	struct esma_message *msg;
@@ -239,12 +239,6 @@ void esma_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
 	msg->dst = dst;
 	msg->ptr = ptr;
 	msg->code = code;
-}
-
-void esma_stop(struct esma *esma)
-{
-	if (unlikely(NULL == esma))
-		return;
 }
 
 int esma_engine_init(u32 ngn_id)
