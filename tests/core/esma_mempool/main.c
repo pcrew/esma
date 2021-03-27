@@ -19,7 +19,7 @@ int main()
 	struct test *block = NULL;
 	   int err;
 
-	err = esma_mempool_init(&mp, sizeof(struct test), MEMPOOL_SMALL_BLOCK);
+	err = esma_mempool_init(&mp, sizeof(struct test));
 	if (err) {
 		printf("esma_mempool_init() - failed.\n");
 		return 0;

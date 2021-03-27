@@ -1,14 +1,18 @@
 
-.PHONY: all clean cleanall
+.PHONY: clean cleanall
 
-all:
-	@$(MAKE) -C basic
-	@$(MAKE) -C large_block
+SOURCES = main.c
+OBJECTS = $(SOURCES:.c=.o)
+PROGRAM = test
+LDFLAGS = -ldl -lm
+
+all: $(PROGRAM)
+
+$(PROGRAM): $(OBJECTS) $(CORE)
+	$(CC) -rdynamic $(OBJECTS) $(CORE) -o $@ $(LDFLAGS)
 
 clean:
-	@$(MAKE) clean -C basic
-	@$(MAKE) clean -C large_block
+	@rm -fv $(OBJECTS)
 
 cleanall:
-	@$(MAKE) cleanall -C basic
-	@$(MAKE) cleanall -C large_block
+	@rm -fv $(OBJECTS) $(PROGRAM)

@@ -11,27 +11,26 @@
 #include "common/compiler.h"
 #include "common/macro_magic.h"
 
-#define STRERR	strerror(errno)
-#define BLOCKS	1024
+#define NBLOCKS	1024
 
-struct block_small {
-	struct block_small *next;
+#define LOG_MSG_INVALID_ARGS()	esma_core_log_err("%s() - invalid arguments\n", __func__)
+
+struct block {
+	struct block *next;
 };
-
-#define MEMPOOL_BLOCK(block)	((struct block_small *) block)
 
 static void _esma_mempool_init_blocks(u8 *addr, u32 blocks_qty, u32 block_size)
 {
-	struct block_small *b;
+	struct block *b;
 	    u8 *a = addr;
 
 	while (--blocks_qty) {
-		b = (struct block_small *) a;
-		b->next = (struct block_small *) (a + block_size);
+		b = (struct block *) a;
+		b->next = (struct block *) (a + block_size);
 		a += block_size;
 	}
 
-	b = (struct block_small *) a;
+	b = (struct block *) a;
 	b->next = NULL;
 }
 
@@ -42,16 +41,16 @@ static int _esma_mempool_new_addr(struct esma_mempool *mp)
 
 	addr = esma_realloc(mp->addr, (mp->naddr + 1) * sizeof(u8 *));
 	if (addr == NULL) {
-		esma_core_log_err("%s() - esma_realloc(): failed\n", __func__);
+		esma_core_log_sys("%s() - esma_realloc(): failed\n", __func__);
 		return 1;
 	}
 
 	mp->addr = addr;
 
-	blocks = esma_malloc(BLOCKS * mp->block_size);
+	blocks = esma_malloc(NBLOCKS * mp->block_size);
 	if (NULL == blocks) {
-		esma_core_log_err("%s() - esma_malloc(%ld bytes): failed\n",
-				__func__, BLOCKS * mp->block_size);
+		esma_core_log_sys("%s() - esma_malloc(%ld bytes): failed\n",
+				__func__, NBLOCKS * mp->block_size);
 		esma_free(addr);
 		return 1;
 	}
@@ -59,44 +58,33 @@ static int _esma_mempool_new_addr(struct esma_mempool *mp)
 	mp->addr[mp->naddr] = blocks;
 	mp->naddr++;
 
-	mp->block_small = (struct block_small *) blocks;
+	mp->blocks = (struct block *) blocks;
+	mp->nblocks = NBLOCKS;
 
-	_esma_mempool_init_blocks(blocks, BLOCKS, mp->block_size);
+	_esma_mempool_init_blocks(blocks, NBLOCKS, mp->block_size);
 	return 0;
 }
 
-static int _esma_mempool_new_large_block(struct esma_mempool *mp)
+int esma_mempool_init(struct esma_mempool *mp, u32 block_size)
 {
-	void *b = NULL;
+	int err;
 
-	b = esma_malloc(mp->block_size * BLOCKS);
-	if (NULL == b)
+	if (NULL == mp) {
+		LOG_MSG_INVALID_ARGS();
 		return 1;
+	}
 
-	mp->block_large = b;
-	mp->block_large_avail = BLOCKS;
-	return 0;
-}
-
-int esma_mempool_init(struct esma_mempool *mp, u32 block_size, u32 type)
-{
-	block_size = max(block_size, sizeof(struct block_small));
+	block_size = max(block_size, sizeof(struct block));
 	block_size = ALIGN(block_size, 8);
 
 	mp->block_size = block_size;
 	mp->addr = NULL;
 	mp->naddr = 0;
 
-	if (type & MEMPOOL_SMALL_BLOCK) {
-		int err = _esma_mempool_new_addr(mp);
-		if (err)
-			goto __fail;
-	}
-
-	if (type & MEMPOOL_LARGE_BLOCK) {
-		int err = _esma_mempool_new_large_block(mp);
-		if (err)
-			goto __fail;
+	err = _esma_mempool_new_addr(mp);
+	if (err) {
+		esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
+		goto __fail;
 	}
 
 	return 0;
@@ -106,7 +94,7 @@ __fail:
 	return 1;
 }
 
-struct esma_mempool *esma_mempool_new(u32 block_size, u32 type)
+struct esma_mempool *esma_mempool_new(u32 block_size)
 {
 	struct esma_mempool *mp;
 	   int err;
@@ -118,10 +106,10 @@ struct esma_mempool *esma_mempool_new(u32 block_size, u32 type)
 		return NULL;
 	}
 
-	err = esma_mempool_init(mp, block_size, type);
+	err = esma_mempool_init(mp, block_size);
 	if (err) {
-		esma_core_log_err("%s() - esma_mempool_init(%ld, %ld): failed\n",
-				__func__, block_size, type);
+		esma_core_log_err("%s() - esma_mempool_init(%ld): failed\n",
+				__func__, block_size);
 		esma_mempool_free(mp);
 		return NULL;
 	}
@@ -131,43 +119,37 @@ struct esma_mempool *esma_mempool_new(u32 block_size, u32 type)
 
 void *esma_mempool_get_block(struct esma_mempool *mp)
 {
-	struct block_small *block = mp->block_small;
-	struct block_small *ret;
+	struct block *ret;
 
-	if (NULL == mp)
-		return NULL;
-
-	if (NULL == mp->block_small) {
+	if (NULL == mp) {
+		LOG_MSG_INVALID_ARGS();
 		return NULL;
 	}
 
-	if (NULL == mp->block_small) {
+	if (mp->basket) {
+		goto __ret_basket;		
+	}
+
+	if (NULL == mp->blocks) {
 		int err = _esma_mempool_new_addr(mp);
 		if (err) {
-			return NULL;
+			esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
+			goto __fail;
 		}
 	}
 
-	ret = block;
-	mp->block_small = block->next;
+	mp->nblocks--;
+	ret = mp->blocks;
+	mp->blocks = ret->next;
 	return ret;
-}
 
-static void _esma_mempool_split_large_block(struct esma_mempool *mp)
-{
-	struct block_small *b;
-	u8 *a = mp->block_large + mp->block_large_avail * mp->block_size;
-	u32 blocks_qty = mp->block_large_avail;
+__ret_basket:
+	ret = mp->basket;
+	mp->basket = ret->next;
+	return ret;
 
-	while (--blocks_qty) {
-		b = (struct block_small *) a;
-		b->next = (struct block_small *) (a + mp->block_size);
-		a += mp->block_size;
-	}
-
-	b = (struct block_small *) a;
-	b->next = mp->block_small;
-	mp->block_small = b;
+__fail:
+	return NULL;
 }
 
 void *esma_mempool_get_block_n(struct esma_mempool *mp, int n)
@@ -175,40 +157,70 @@ void *esma_mempool_get_block_n(struct esma_mempool *mp, int n)
 	void *block;
 	 int  err;
 
-	if (NULL == mp || n < 0)
+	if (NULL == mp || n < 0) {
+		LOG_MSG_INVALID_ARGS();
 		return NULL;
+	}
 
-	if (n < mp->block_large_avail)
+	if (n <= mp->nblocks)
 		goto __return_n_blocks;
 
-	_esma_mempool_split_large_block(mp);
-	err = _esma_mempool_new_large_block(mp);
-	if (err)
+	((struct block *) mp->blocks + mp->block_size * mp->nblocks)->next = mp->basket;
+	mp->basket = mp->blocks;
+
+	err = _esma_mempool_new_addr(mp);
+	if (err) {
+		esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
 		return NULL;
+	}
 
 	goto __return_n_blocks;
 
 __return_n_blocks:
-	block = mp->block_large;
-	mp->block_large += n * mp->block_size;
-	mp->block_large_avail -= n;
+
+	block = mp->blocks;
+	mp->blocks = block + mp->block_size * n;
+	mp->nblocks -= n;
+
 	return block;
 }
 
-void esma_mempool_put_block(struct esma_mempool *mp, void *ptr)
+int esma_mempool_put_block(struct esma_mempool *mp, void *ptr)
 {
-	struct block_small *d;
+	struct block *basket;
+	struct block *tmp;
 
-	d = mp->block_small;
-	mp->block_small = (struct block_small *) ptr;
-	MEMPOOL_BLOCK(mp->block_small)->next = d;
+	if (NULL == mp || NULL == ptr) {
+		LOG_MSG_INVALID_ARGS();
+		return 1;
+	}
+
+	tmp = mp->basket;
+	basket = ptr;
+
+	mp->basket = basket;
+	basket->next = tmp;
+
+	return 0;
+}
+
+int esma_mempool_put_block_n(struct esma_mempool *mp, void *ptr, int n)
+{
+	if (NULL == mp || NULL == ptr || n < 0) {
+		LOG_MSG_INVALID_ARGS();
+		return 1;
+	}
+
+	_esma_mempool_init_blocks((u8 *) ptr, n, mp->block_size);
+
+	((struct block *) ptr + mp->block_size * n)->next = mp->basket;
+	mp->basket = ptr;	
+	return 0;
 }
 
 void esma_mempool_free(struct esma_mempool *mp)
 {
-	int i;
-
-	for (i = 0; i < mp->naddr; i++) {
+	for (int i = 0; i < mp->naddr; i++) {
 		if (mp->addr[i])
 			esma_free(mp->addr[i]);
 	}
