@@ -208,9 +208,27 @@ enum states {
 	st_no_states,
 };
 
-static int state;
+struct esma_template_internal {
+	int flags;
+	int code;
+	int ch_type;
+	int ch_data;
 
-int _new_esma_state_template(struct esma_template *tmpl, char *name, u32 name_len)
+	struct esma_state_template *est_src;
+	struct esma_state_template *est_dst;
+};
+
+static void _esma_template_internal_clean(struct esma_template_internal *eti)
+{
+	eti->flags = -1;
+	eti->code = -1;
+	eti->ch_type = ESMA_CH_NONE;
+	eti->ch_data = -1;
+	eti->est_src = NULL;
+	eti->est_dst = NULL;
+}
+
+static int _new_esma_state_template(struct esma_template *tmpl, char *name, u32 name_len)
 {
 	struct esma_state_template *state;
            int err;
@@ -231,68 +249,56 @@ int _new_esma_state_template(struct esma_template *tmpl, char *name, u32 name_le
 }
 
 /* TODO: необходимо добавлять состояния по индексу кода; сейчас делается обычный push */
-int _new_esma_trans_template(struct esma_state_template *src,
-			     struct esma_state_template *dst,
-			     u32 code,
-			     int ch_type, int ch_data, int periodic)
+static int _new_esma_trans_template(struct esma_template_internal *eti)
 {
 	struct esma_trans_template *trans;
 
-	switch (ch_type) {
+	switch (eti->ch_type) {
 	case ESMA_CH_NONE:
-
-		src->ntrans++;
-		src->max_code = code > src->max_code ? code: src->max_code;
+		eti->est_src->ntrans++;
+		eti->est_src->max_code = eti->code > eti->est_src->max_code ? eti->code: eti->est_src->max_code;
 		break;
 
 	case ESMA_CH_TICK:
-
-		src->max_tick_code = code > src->max_tick_code ? code : src->max_tick_code;
+		eti->est_src->max_tick_code = eti->code > eti->est_src->max_tick_code ? eti->code : eti->est_src->max_tick_code;
 		break;
 
 	case ESMA_CH_DATA:
-
-		src->max_data_code = code > src->max_data_code ? code : src->max_data_code;
+		eti->est_src->max_data_code = eti->code > eti->est_src->max_data_code ? eti->code : eti->est_src->max_data_code;
 		break;
 
 	case ESMA_CH_SIGN:
-
-		src->max_sign_code = code > src->max_sign_code ? code : src->max_sign_code;
+		eti->est_src->max_sign_code = eti->code > eti->est_src->max_sign_code ? eti->code : eti->est_src->max_sign_code;
 		break;
 	}
 
-	trans = esma_array_push(&src->trans);
+	trans = esma_array_push(&eti->est_src->trans);
 	if (NULL == trans) {
-		esma_engine_log_err("%s()/%s - esma_array_push() returned NULL\n", __func__, dst->name);
+		esma_engine_log_err("%s()/%s - esma_array_push() returned NULL\n", __func__, eti->est_dst->name);
 		return 1;
 	}
 
-	trans->action_code = code;
-	trans->next_state = dst;
-	trans->ch_type = ch_type;
-	trans->ch_data = ch_data;
-	trans->ch_periodic = periodic;
+	trans->action_code = eti->code;
+	trans->next_state = eti->est_dst;
+	trans->ch_type = eti->ch_type;
+	trans->ch_data = eti->ch_data;
+	trans->ch_periodic = eti->flags;
 	return 0;
 }
 
-static int flags = -1;
-static int code = -1;
-static int ch_type = ESMA_CH_NONE;
-static int ch_data = -1;
-
-static struct esma_state_template *est_src = NULL;
-static struct esma_state_template *est_dst = NULL;
-
 #define log_dbg_msg(...) printf(__VA_ARGS__);
-static int __decode_dbuf(char *line, struct esma_template *et)
+static int _decode_dbuf(char *line, struct esma_template *et)
 {
+	struct esma_template_internal eti;
 	char *p = line;
 	char *end = line + strlen(line) - 1;
 	char *t, *s; /* helpers pointers */
 
+	int state = st_start;
 	int err;
 	int ret;
 
+	_esma_template_internal_clean(&eti);
 	t = p;
 	s = p;
 	while (p != end) {
@@ -408,16 +414,10 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 		case st_state_name_enter:
 
 			t = s = p;
-#if 0
-			if (IS_DELIM(t) || IS_SEMICOLON(t)) {
-				p++;
-				break;
-			}
-#endif
 
 			if (IS_CLOSE_BRACE(p)) {
 
-				if (et->nstates == 2) { /* states section is empty */
+				if (et->nstates == 2) { /* states section is empty: have only basi FINI and INIT states */
 					state = st_no_states;
 					esma_engine_log_err("%s()/%s - section 'states': section is empty\n", __func__, et->name);
 					goto __fail;
@@ -488,14 +488,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				break;
 			}
 
-/* TODO: необходимо избавиться */
-#if 0
-			if (IS_CLOSE_BRACE(p)) {
-				p++;
-				state = st_trans_section_leave;
-				break;
-			}
-#endif
 			esma_engine_log_err("%s()/%s - section 'states': invalid symbol '%c' after 'trans' word\n",
 					__func__, et->name, *p);
 			goto __fail;
@@ -539,11 +531,11 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				if (mismatch)
 					 continue;
 
-				est_src = tmpl;
+				eti.est_src = tmpl;
 				break;
 			}
 
-			if (NULL == est_src) {
+			if (NULL == eti.est_src) {
 				*t = 0;
 				esma_engine_log_err("%s()/%s - section 'trans': src state '%s' not found\n", __func__, et->name, s);
 				goto __fail;
@@ -555,9 +547,9 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_state_row:
 
-			if (end - p >= 2) {
+			if (end - p >= 2) { /* pedantic step */
 				if (IS_ROW(p)) {
-					p += 2;
+					p += 2;	/* was _->; become ->_ */
 					state = st_trans_state_dst;
 					break;
 				}
@@ -580,7 +572,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 			if (4 == t - s) { /* special state for moore machine */
 				if (str_4_cmp(s, 's','e','l','f')) {
-					est_dst = NULL;
+					eti.est_dst = NULL;
 					p = t;
 					state = st_trans_state_dst_colon;
 					break;
@@ -602,11 +594,11 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				if (0 != mismatch)
 					 continue;
 
-				est_dst = tmpl;
+				eti.est_dst = tmpl;
 				break;
 			}
 
-			if (NULL == est_dst) {
+			if (NULL == eti.est_dst) {
 				*t = 0;
 				esma_engine_log_err("%s()/%s - section 'trans': dst state '%s' not found\n",
 						__func__, et->name, s);
@@ -637,9 +629,12 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				s++;
 			}
 
-			ret = sscanf(p, "%d", &code);
+			ret = sscanf(p, "%d", &eti.code);
 			if (1 != ret) {
 				state = st_trans_code_channel;
+				while (IS_NOT_COLON(s)) {
+					s++;
+				}
 				break;
 			}
 
@@ -650,26 +645,26 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_code_channel:
 
-			ret = sscanf(p, "tick_%d", &code);
+			ret = sscanf(p, "tick_%d:", &eti.code);
 			if (1 == ret) {
-				p = s;
-				ch_type = ESMA_CH_TICK;
+				p = s + 1;
+				eti.ch_type = ESMA_CH_TICK;
 				state = st_trans_code_channel_tick_interval;
 				break;
 			}
 
-			ret = sscanf(p, "data_%d", &code);
+			ret = sscanf(p, "data_%d:", &eti.code);
 			if (1 == ret) {
-				p = s;
-				ch_type = ESMA_CH_DATA;
+				p = s + 1;
+				eti.ch_type = ESMA_CH_DATA;
 				state = st_trans_code_channel_data_event;
 				break;
 			}
 
-			ret = sscanf(p, "sign_%d", &code);
+			ret = sscanf(p, "sign_%d:", &eti.code);
 			if (1 == ret) {
-				p = s;
-				ch_type = ESMA_CH_SIGN;
+				p = s + 1;
+				eti.ch_type = ESMA_CH_SIGN;
 				state = st_trans_code_channel_sign_number;;
 				break;
 			}
@@ -680,21 +675,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_code_channel_tick_interval:
-
-			while (IS_DELIM(p)) {
-				p++;
-			}
-
-			if (IS_NOT_COLON(p)) {
-				goto __fail;
-			}
-
-			p++;
-
-			while (IS_DELIM(p)) {
-				p++;
-			}
-
 			s = p;
 
 			while (IS_DIGIT(s)) {
@@ -705,7 +685,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				goto __fail;
 
 			if (*s == 'm' && *(s + 1) == 's') {
-				ret = sscanf(p, "%dms", &ch_data);
+				ret = sscanf(p, "%dms", &eti.ch_data);
 				if (ret != 1) {
 					esma_engine_log_err("%s()/%s - section 'trans': can't read tick interval\n",
 							__func__, et->name);
@@ -716,14 +696,14 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			}
 
 			if (*s == 's') {
-				ret = sscanf(p, "%ds", &ch_data);
+				ret = sscanf(p, "%ds", &eti.ch_data);
 				if (ret != 1) {
 					esma_engine_log_err("%s()/%s - section 'trans': can't read tick interval\n",
 							__func__, et->name);
 					goto __fail;
 				}
 
-				ch_data *= 1000;
+				eti.ch_data *= 1000;
 				p = s + 1;
 			}
 
@@ -747,11 +727,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_code_channel_tick_interval_period:
-
-			while (IS_DELIM(p)) {
-				p++;
-			}
-
 			s = p;
 
 			while (IS_LETTER(p)) {
@@ -803,7 +778,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				case 8:	/* 'PERIODIC' */
 					if (str_8_cmp(s, 'P','E','R','I','O','D','I','C')) {
 						state = st_trans_semicolon;
-						flags = ESMA_TM_PERIODIC;
+						eti.flags = ESMA_TM_PERIODIC;
 						break;
 					}
 
@@ -815,7 +790,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				case 7:	/* 'ONESHOT' */
 					if (str_7_cmp(s, 'O','N','E','S','H','O','T')) {
 						state = st_trans_semicolon;
-						flags = ESMA_TM_ONESHOT;
+						eti.flags = ESMA_TM_ONESHOT;
 						break;
 					}
 
@@ -835,18 +810,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_code_channel_sign_number:
-
-			if (IS_NOT_COLON(p)) {
-				esma_engine_log_err("%s()/%s - section 'trans': need colon\n", __func__, et->name);
-				goto __fail;
-			}
-
-			p++;
-
-			while (IS_DELIM(p)) {
-				p++;
-			}
-
 			s = p;
 			while (IS_LETTER(s) || IS_DIGIT(s)) {
 				s++;
@@ -861,43 +824,43 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			switch (s - p) {
 			case 3:
 				if (str_3_cmp(p, 'B', 'U', 'S')) {
-					ch_data = SIGBUS;
+					eti.ch_data = SIGBUS;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'F', 'P', 'E')) {
-					ch_data = SIGFPE;
+					eti.ch_data = SIGFPE;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'H', 'U', 'P')) {
-					ch_data = SIGHUP;
+					eti.ch_data = SIGHUP;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'I', 'L', 'L')) {
-					ch_data = SIGILL;
+					eti.ch_data = SIGILL;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'I', 'N', 'T')) {
-					ch_data = SIGINT;
+					eti.ch_data = SIGINT;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'S', 'Y', 'S')) {
-					ch_data = SIGSYS;
+					eti.ch_data = SIGSYS;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_3_cmp(p, 'U', 'R', 'G')) {
-					ch_data = SIGURG;
+					eti.ch_data = SIGURG;
 					state = st_trans_semicolon;
 					break;
 				}
@@ -907,125 +870,125 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 			case 4:
 				if (str_4_cmp(p, 'A', 'B', 'R', 'T')) {
-					ch_data = SIGABRT;
+					eti.ch_data = SIGABRT;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'A', 'L', 'R', 'M')) {
-					ch_data = SIGALRM;
+					eti.ch_data = SIGALRM;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'C', 'H', 'L', 'D')) {
-					ch_data = SIGCHLD;
+					eti.ch_data = SIGCHLD;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'C', 'O', 'N', 'T')) {
-					ch_data = SIGCONT;
+					eti.ch_data = SIGCONT;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'K', 'I', 'L', 'L')) {
-					ch_data = SIGKILL;
+					eti.ch_data = SIGKILL;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'P', 'I', 'P', 'E')) {
-					ch_data = SIGPIPE;
+					eti.ch_data = SIGPIPE;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'Q', 'U', 'I', 'T')) {
-					ch_data = SIGQUIT;
+					eti.ch_data = SIGQUIT;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'S', 'E', 'G', 'V')) {
-					ch_data = SIGSEGV;
+					eti.ch_data = SIGSEGV;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'S', 'T', 'O', 'P')) {
-					ch_data = SIGSTOP;
+					eti.ch_data = SIGSTOP;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'E', 'R', 'M')) {
-					ch_data = SIGTERM;
+					eti.ch_data = SIGTERM;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'S', 'T', 'P')) {
-					ch_data = SIGTSTP;
+					eti.ch_data = SIGTSTP;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'T', 'I', 'N')) {
-					ch_data = SIGTTIN;
+					eti.ch_data = SIGTTIN;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'T', 'O', 'U')) {
-					ch_data = SIGTTOU;
+					eti.ch_data = SIGTTOU;
 					state = st_trans_semicolon;
 					break;
 				}
 
 
 				if (str_4_cmp(p, 'U', 'S', 'R', '1')) {
-					ch_data = SIGUSR1;
+					eti.ch_data = SIGUSR1;
 					state = st_trans_semicolon;
 					break;
 				}
 
 
 				if (str_4_cmp(p, 'U', 'S', 'R', '2')) {
-					ch_data = SIGUSR2;
+					eti.ch_data = SIGUSR2;
 					state = st_trans_semicolon;
 					break;
 				}
 
 
 				if (str_4_cmp(p, 'P', 'O', 'L', 'L')) {
-					ch_data = SIGPOLL;
+					eti.ch_data = SIGPOLL;
 					state = st_trans_semicolon;
 					break;
 				}
 
 
 				if (str_4_cmp(p, 'P', 'R', 'O', 'F')) {
-					ch_data = SIGPROF;
+					eti.ch_data = SIGPROF;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'R', 'A', 'P')) {
-					ch_data = SIGTRAP;
+					eti.ch_data = SIGTRAP;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'X', 'C', 'P', 'U')) {
-					ch_data = SIGXCPU;
+					eti.ch_data = SIGXCPU;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_4_cmp(p, 'X', 'C', 'P', 'U')) {
-					ch_data = SIGXCPU;
+					eti.ch_data = SIGXCPU;
 					state = st_trans_semicolon;
 					break;
 				}
@@ -1036,7 +999,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			default:
 
 				if (str_6_cmp(p, 'V', 'T', 'A', 'L', 'R', 'M')) {
-					ch_data = SIGVTALRM;
+					eti.ch_data = SIGVTALRM;
 					state = st_trans_semicolon;
 					break;
 				}
@@ -1049,18 +1012,6 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_code_channel_data_event:
-
-			if (IS_NOT_COLON(p)) {
-				esma_engine_log_err("%s()/%s - section 'trans': need colon\n", __func__, et->name);
-				goto __fail;
-			}
-
-			p++;
-
-			while (IS_DELIM(p)) {
-				p++;
-			}
-
 			s = p;
 			while (IS_LETTER(s) || *s == '_') {
 				s++;
@@ -1075,19 +1026,19 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 			switch (s - p) {
 			case 7:
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'O', 'U', 'T')) {
-					ch_data = ESMA_POLLOUT;
+					eti.ch_data = ESMA_POLLOUT;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'E', 'R', 'R')) {
-					ch_data = ESMA_POLLERR;
+					eti.ch_data = ESMA_POLLERR;
 					state = st_trans_semicolon;
 					break;
 				}
 
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'H', 'U', 'P')) {
-					ch_data = ESMA_POLLHUP;
+					eti.ch_data = ESMA_POLLHUP;
 					state = st_trans_semicolon;
 					break;
 				}
@@ -1097,7 +1048,7 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 
 			case 6:
 				if (str_6_cmp(p, 'P', 'O', 'L', 'L', 'I', 'N')) {
-					ch_data = ESMA_POLLIN;
+					eti.ch_data = ESMA_POLLIN;
 					state = st_trans_semicolon;
 					break;
 				}
@@ -1122,20 +1073,13 @@ static int __decode_dbuf(char *line, struct esma_template *et)
 				goto __fail;
 			}
 
-			err = _new_esma_trans_template(est_src, est_dst, code, ch_type, ch_data, flags);
+			err = _new_esma_trans_template(&eti);
 			if (err) {
 				esma_engine_log_err("%s()/%s - section 'trans': can't set trans: %s -> %s\n",
-						__func__, et->name, est_src->name, est_dst->name);
+						__func__, et->name, eti.est_src->name, eti.est_dst->name);
 				goto __fail;
 			}
-
-			code = -1;
-			ch_type = ESMA_CH_NONE;
-			ch_data = -1;
-			flags = -1;
-
-			est_src = NULL;
-			est_dst = NULL;
+			_esma_template_internal_clean(&eti);
 
 			p++;
 			state = st_trans_section_enter;
@@ -1222,23 +1166,10 @@ int esma_template_set_by_path(struct esma_template *et, char *path)
 
 int esma_template_set_by_dbuf(struct esma_template *et, struct esma_dbuf *dbuf)
 {
-	int err;
-
 	if (NULL == et || NULL == dbuf)
 		return 1;
 
 	dbuf->pos = dbuf->loc;
-	state = st_start;
 
-	err = __decode_dbuf((char *) dbuf->loc, et);
-
-	est_src = NULL;
-	est_dst = NULL;
-	ch_type = ESMA_CH_NONE;
-	ch_data = -1;
-	code = -1;
-
-	state = st_start;
-
-	return err;
+	return _decode_dbuf((char *) dbuf->loc, et);
 }
