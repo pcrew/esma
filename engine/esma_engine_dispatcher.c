@@ -15,7 +15,7 @@
 #include "common/compiler.h"
 #include "common/macro_magic.h"
 
-static int __read_tick(struct esma_channel *ch)
+static int _read_tick(struct esma_channel *ch)
 {
 	u64 res;
 	int ret;
@@ -29,7 +29,7 @@ static int __read_tick(struct esma_channel *ch)
 	return 0;
 }
 
-static int __read_sign(struct esma_channel *ch)
+static int _read_sign(struct esma_channel *ch)
 {
 	int ret;
 	int n = sizeof(struct signalfd_siginfo);
@@ -43,7 +43,7 @@ static int __read_sign(struct esma_channel *ch)
 	return 0;
 }
 
-static int __read_data(struct esma_channel *ch)
+static int _read_data(struct esma_channel *ch)
 {
 	int ret;
 
@@ -59,12 +59,12 @@ static int __read_data(struct esma_channel *ch)
 	return 0;
 }
 
-static int (*__read_ch_data[])(struct esma_channel *ch) = {
+static int (*_read_ch_data[])(struct esma_channel *ch) = {
 	[ESMA_CH_EMPTY] = NULL,
 	[ESMA_CH_NONE] = NULL,
-	[ESMA_CH_TICK] = __read_tick,
-	[ESMA_CH_SIGN] = __read_sign,
-	[ESMA_CH_DATA] = __read_data,
+	[ESMA_CH_TICK] = _read_tick,
+	[ESMA_CH_SIGN] = _read_sign,
+	[ESMA_CH_DATA] = _read_data,
 };
 
 static int __start_channels(struct state *state)
@@ -113,19 +113,12 @@ static int __stop_channels(struct state *state)
 		struct trans *trans = esma_array_n(&state->tick_trans, i);
 		struct esma_channel *ch = &trans->ch;
 
-#if 1
 		err = esma_engine_disarm_tick_channel(ch);
 		if (err) {
 			esma_dispatcher_log_ftl("%s()/%s - failed to mod tick channel; fd: '%d'\n",
 					__func__, ch->owner->name, i);
 			exit(1);
 		}
-
-#else
-		err = esma_engine_mod_channel(ch, 0);
-		if (err)
-			exit(1);
-#endif
 	}
 
 	for (int i = 0; i < state->sign_trans.nitems; i++) {
@@ -206,7 +199,7 @@ __read_os_msg:
 		}
 	}
 
-	err = __read_ch_data[ch->type](ch);
+	err = _read_ch_data[ch->type](ch);
 	if (err) {
 		esma_dispatcher_log_ftl("%s()/%s - can't read channel data\n", __func__, dst->name);
 		goto __fail;
