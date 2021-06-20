@@ -24,7 +24,7 @@ static int epollfd = -1;
 static void epoll_reactor__init(u32 nevent, void *tools)
 {
 	if (NULL != ei || -1 != epollfd) {
-		esma_engine_log_err("%s() - double reactor initialization\n", __func__);
+		esma_reactor_log_err("%s() - double reactor initialization\n", __func__);
 		exit(1);
 	}
 
@@ -32,7 +32,7 @@ static void epoll_reactor__init(u32 nevent, void *tools)
 
 	epollfd = epoll_create(nevent);
 	if (-1 == epollfd) {
-		esma_engine_log_err("%s() - epoll_create('%d'): failed\n", __func__, nevent);
+		esma_reactor_log_err("%s() - epoll_create('%d'): failed\n", __func__, nevent);
 		exit(1);
 	}
 }
@@ -42,7 +42,7 @@ static void epoll_reactor__fini(void)
 	int err = close(epollfd);
 
 	if (-1 == err) {
-		esma_engine_log_err("%s() - close('epollfd'): failed\n", __func__);
+		esma_reactor_log_err("%s() - close('epollfd'): failed\n", __func__);
 		exit(1);
 	}
 }
@@ -57,14 +57,14 @@ static int epoll_reactor__add(int fd, struct esma_channel *ch)
 
 	err = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);
 	if (-1 == err) {
-		esma_engine_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_ADD, %d): failed\n",
+		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_ADD, %d): failed\n",
 				epollfd, __func__, fd);
 		return 1;
 	}
 
 	err = esma_fd_set_nonblocking(fd, 1);
 	if (err) {
-		esma_engine_log_err("%s() - esma_fd_set_nonblocking(%d, true): failed\n",
+		esma_reactor_log_err("%s() - esma_fd_set_nonblocking(%d, true): failed\n",
 				__func__, fd);
 		return 1;
 	}
@@ -79,7 +79,7 @@ static int epoll_reactor__del(int fd, __attribute__((unused)) struct esma_channe
 
 	ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &ev);
 	if (-1 == ret) {
-		esma_engine_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_DEL, %d): %s\n",
+		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_DEL, %d): %s\n",
 				__func__, epollfd, fd, strerror(errno));
 		return 1;
 	}
@@ -114,7 +114,7 @@ static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 
 	ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev);
 	if (-1 == ret) {
-		esma_engine_log_err("%s() - epoll_ctL(EPOLL_CTL_MOD, %d): failed\n",
+		esma_reactor_log_err("%s() - epoll_ctL(EPOLL_CTL_MOD, %d): failed\n",
 				__func__, fd);
 		return 1;
 	}
@@ -132,7 +132,7 @@ static void epoll_reactor__wait(void)
 
 	nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
 	if (-1 == nfds) {
-		esma_engine_log_err("%s() - epoll_wait(%d, EVENTS[%d]): failed\n",
+		esma_reactor_log_err("%s() - epoll_wait(%d, EVENTS[%d]): failed\n",
 				__func__, epollfd, MAX_EVENTS);
 		return; /* exit(1) ?  */
 	}
@@ -143,7 +143,7 @@ static void epoll_reactor__wait(void)
 
 		msg = esma_ring_buffer_put(msg_queue);
 		if (unlikely(NULL == msg)) {
-			esma_engine_log_err("%s() - can't put msg\n", __func__);
+			esma_reactor_log_err("%s() - can't put msg\n", __func__);
 			exit(1);
 		}
 
