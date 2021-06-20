@@ -37,7 +37,7 @@ static void poll_reactor__init(u32 nev, void *tools)
 	ei = tools;
 
 	esma_channels = esma_malloc(sizeof(struct esma_channels *) * nev);
-	if (NULL == event_list) {
+	if (NULL == esma_channels) {
 		esma_engine_log_ftl("%s() - esma_malloc('esma_channels', %d): failed\n",
 				__func__, nev);
 	}
@@ -146,7 +146,7 @@ static void poll_reactor__wait(void)
 		u32 revents;
 		u32 e = 0;
 
-		if (-1 == event_list[i].fd)
+		if (-1 == event_list[i].fd || 0 == event_list[i].revents)
 			continue;
 
 		revents = event_list[i].revents;
