@@ -9,13 +9,7 @@
 
 #include "common/macro_magic.h"
 
-#if 0
-#define DBG_MSG		printf("%s() - %d\n", __func__, __LINE__);
-#else
-#define DBG_MSG
-#endif
-
-struct state *_esma_find_next_state_by_name(struct esma *esma, struct esma_trans_template *tmpl)
+static struct state *_esma_find_next_state_by_name(struct esma *esma, struct esma_trans_template *tmpl)
 {
 	for (int i = 0; i < esma->states.nitems; i++) {
 		struct state *state = esma_array_n(&esma->states, i);
@@ -30,7 +24,7 @@ struct state *_esma_find_next_state_by_name(struct esma *esma, struct esma_trans
 	return NULL;
 }
 
-int _esma_prepare_states(struct esma *esma, struct esma_template *tmpl)
+static int _esma_prepare_states(struct esma *esma, struct esma_template *tmpl)
 {
 	for (int i = 0; i < tmpl->nstates; i++) {
 		struct esma_state_template *state_tmpl = esma_array_n(&tmpl->states, i);
@@ -88,7 +82,7 @@ __fail:
 	return 1;
 }
 
-int _esma_prepare_trans(struct esma *esma, struct esma_template *tmpl)
+static int _esma_prepare_trans(struct esma *esma, struct esma_template *tmpl)
 {
 	for (int i = 0; i < esma->states.nitems; i++) {
 		struct esma_state_template *state_tmpl;
@@ -162,7 +156,7 @@ int _esma_prepare_trans(struct esma *esma, struct esma_template *tmpl)
 				break;
 
 			default:
-				esma_engine_log_err("%s()/%s invalid channel time for '%s' state: %d\n",
+				esma_engine_log_err("%s()/%s invalid channel type '%s' state: %d\n",
 						__func__, tmpl->name, state->name, trans_tmpl->ch_type);
 				goto __fail;
 			}
