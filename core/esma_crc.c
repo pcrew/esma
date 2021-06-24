@@ -15,25 +15,25 @@ struct crc32_poly {
 };
 
 
-static void __crc16_false_false(u8 *d, u32 len, u16 *crc, u16 *poly)
+static void __crc16_false_false(u8 *d, u32 len, u16 crc, u16 poly)
 {
 	u8 i;
 
 	while (len--) {	
-		*crc ^= *d++ << 8;
+		crc ^= *d++ << 8;
 		for (i = 0; i < 8; i++)
-			*crc = *crc & 0x8000 ? (*crc << 1) ^ *poly : *crc << 1;
+			crc = crc & 0x8000 ? (crc << 1) ^ poly : crc << 1;
 	}
 }
 
-static void __crc16_true_true(u8 *d, u32 len, u16 *crc, u16 *poly)
+static void __crc16_true_true(u8 *d, u32 len, u16 crc, u16 poly)
 {
 	u8 i;
 
 	while (len--) {
-		*crc ^= *d++;
+		crc ^= *d++;
 		for (i = 0; i < 8; i++)
-			*crc = *crc & 1 ? (*crc >> 1) ^ *poly : *crc >> 1;
+			crc = crc & 1 ? (crc >> 1) ^ poly : crc >> 1;
 	}
 }
 
@@ -75,63 +75,63 @@ u16 esma_crc16(u8 *d, u32 len, u32 name)
 
 		case ARC:
 			crc = 0x0000;
-			__crc16_true_true(d, len, &crc, &crc16_poly[1].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[1].revers);
 			return crc;
 
 		case AUG_CCITT:
 			crc = 0x1D0F;
-			__crc16_false_false(d, len, &crc, &crc16_poly[0].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[0].normal);
 			return crc;
 
 		case BUYPASS:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[1].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[1].normal);
 			return crc;
 
 		case CDMA2000:
 			crc = 0xFFFF;
-			__crc16_false_false(d, len, &crc, &crc16_poly[2].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[2].normal);
 			return crc;
 
 		case DDS_110:
 			crc = 0x800D;
-			__crc16_false_false(d, len, &crc, &crc16_poly[1].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[1].normal);
 			return crc;
 
 		case DECT_R:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[3].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[3].normal);
 			return crc ^ 0x0001;
 
 		case DECT_X:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[3].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[3].normal);
 			return crc;
 
 		case DNP:
 			crc = 0x0000;
-			__crc16_true_true(d, len, &crc, &crc16_poly[4].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[4].revers);
 			return ~crc;
 
 		case EN_13757:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[4].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[4].normal);
 			return ~crc;
 
 		case GENIBUS:
 			crc = 0xFFFF;
-			__crc16_false_false(d, len, &crc, &crc16_poly[0].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[0].normal);
 			return ~crc;
 
 		case MAXIM:
 
 			crc = 0x0000;
-			__crc16_true_true(d, len, &crc, &crc16_poly[1].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[1].revers);
 			return ~crc;
 
 		case MCRF4XX:
 			crc = 0xFFFF;
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return crc;
 
 		case RIELLO:
@@ -141,27 +141,27 @@ u16 esma_crc16(u8 *d, u32 len, u32 name)
 			 *  5    5    4    D
 			 * */
 			crc = 0x554D;
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return crc;
 
 		case T10_DIF:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[5].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[5].normal);
 			return crc;
 
 		case TELEDISK:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[6].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[6].normal);
 			return crc;
 
 		case TMS37157:
 			crc = 0x3791; /* reversed 0x89EX */
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return crc;
 
 		case USB:
 			crc = 0xFFFF;
-			__crc16_true_true(d, len, &crc, &crc16_poly[1].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[1].revers);
 			return ~crc;
 
 		case A:
@@ -171,27 +171,27 @@ u16 esma_crc16(u8 *d, u32 len, u32 name)
 			 *  6    3    6    3
 			 *  */
 			crc = 0x6363;
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return crc;
 
 		case KERMIT:
 			crc = 0x0000;
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return crc;
 
 		case MODBUS:
 			crc = 0xFFFF;
-			__crc16_true_true(d, len, &crc, &crc16_poly[1].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[1].revers);
 			return crc;
 
 		case X_25:
 			crc = 0xFFFF;
-			__crc16_true_true(d, len, &crc, &crc16_poly[0].revers);
+			__crc16_true_true(d, len, crc, crc16_poly[0].revers);
 			return ~crc;
 
 		case XMODEM:
 			crc = 0x0000;
-			__crc16_false_false(d, len, &crc, &crc16_poly[0].normal);
+			__crc16_false_false(d, len, crc, crc16_poly[0].normal);
 			return crc;
 
 		default:
@@ -199,25 +199,25 @@ u16 esma_crc16(u8 *d, u32 len, u32 name)
 	}
 }
 
-static void __crc32_false_false(u8 *d, u32 len, u32 *crc, u32 *poly)
+static void __crc32_false_false(u8 *d, u32 len, u32 crc, u32 poly)
 {
 	u8 i;
 
 	while (len--) {
-		*crc ^= *d++ << 24;
+		crc ^= *d++ << 24;
 		for (i = 0; i < 8; i++)
-			*crc = *crc & 0x80000000 ? (*crc << 1) ^ *poly : *crc << 1;
+			crc = crc & 0x80000000 ? (crc << 1) ^ poly : crc << 1;
 	}
 }
 
-static void __crc32_true_true(u8 *d, u32 len, u32 *crc, u32 *poly)
+static void __crc32_true_true(u8 *d, u32 len, u32 crc, u32 poly)
 {
 	u8 i;
 
 	while (len--) {
-		*crc ^= *d++;
+		crc ^= *d++;
 		for (i = 0; i < 8; i++)
-			*crc = *crc & 1 ? (*crc >> 1) ^ *poly : *crc >> 1;
+			crc = crc & 1 ? (crc >> 1) ^ poly : crc >> 1;
 	}
 }
 
@@ -270,47 +270,47 @@ u32 esma_crc32(u8 *d, u32 len, u32 name)
 
 		case BASIC:
 			crc = 0xFFFFFFFF;
-			__crc32_true_true(d, len, &crc, &crc32_poly[0].revers);
+			__crc32_true_true(d, len, crc, crc32_poly[0].revers);
 			return ~crc;
 
 		case BZIP2:
 			crc = 0xFFFFFFFF;
-			__crc32_false_false(d, len, &crc, &crc32_poly[0].normal);
+			__crc32_false_false(d, len, crc, crc32_poly[0].normal);
 			return ~crc;
 
 		case C:
 			crc = 0xFFFFFFFF;
-			__crc32_true_true(d, len, &crc, &crc32_poly[1].revers);
+			__crc32_true_true(d, len, crc, crc32_poly[1].revers);
 			return ~crc;
 
 		case D:
 			crc = 0xFFFFFFFF;
-			__crc32_true_true(d, len, &crc, &crc32_poly[2].revers);
+			__crc32_true_true(d, len, crc, crc32_poly[2].revers);
 			return ~crc;
 
 		case MPEG2:
 			crc = 0xFFFFFFFF;
-			__crc32_false_false(d, len, &crc, &crc32_poly[0].normal);
+			__crc32_false_false(d, len, crc, crc32_poly[0].normal);
 			return crc;
 
 		case POSIX:
 			crc = 0x00000000;
-			__crc32_false_false(d, len, &crc, &crc32_poly[0].normal);
+			__crc32_false_false(d, len, crc, crc32_poly[0].normal);
 			return ~crc;
 
 		case Q:
 			crc = 0x00000000;
-			__crc32_false_false(d, len, &crc, &crc32_poly[3].normal);
+			__crc32_false_false(d, len, crc, crc32_poly[3].normal);
 			return crc;
 
 		case JAMCRC:
 			crc = 0xFFFFFFFF;
-			__crc32_true_true(d, len, &crc, &crc32_poly[0].revers);
+			__crc32_true_true(d, len, crc, crc32_poly[0].revers);
 			return crc;
 
 		case XFER:
 			crc = 0x00000000;
-			__crc32_false_false(d, len, &crc, &crc32_poly[4].normal);
+			__crc32_false_false(d, len, crc, crc32_poly[4].normal);
 			return crc;
 
 		default:
