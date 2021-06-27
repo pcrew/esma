@@ -13,7 +13,6 @@ int esma_array_init(struct esma_array *arr, u32 capacity, u32 item_size)
 {
 	void *items;
 
-//	capacity = capacity == 0 ? 1 : capacity;
 	items = esma_calloc(capacity, item_size);
 	if (NULL == items) {
 		esma_core_log_err("%s() - esma_calloc(%ld, %ld): failed\n", __func__, capacity, item_size);
@@ -89,6 +88,17 @@ __push:
 	item = arr->items + arr->nitems * arr->item_size;
 	arr->nitems++;
 	return item;
+}
+
+void *esma_array_pop(struct esma_array *arr)
+{
+	  if (unlikely(NULL == arr))
+		  return NULL;
+
+	  if (0 == arr->nitems)
+		  return NULL;
+
+	  return arr->items + (--arr->nitems) * arr->item_size;
 }
 
 void esma_array_free(struct esma_array *arr)
