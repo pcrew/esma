@@ -22,73 +22,48 @@
 
 static struct esma_engine_info *ei = NULL;
 
-struct esma_channel **esma_channels = NULL;
-static struct pollfd *event_list = NULL;
-static u32 nevents;
-static u32 max_events;
+struct esma_array event_list = {0};
+struct esma_array channels = {0};
 
 static void poll_reactor__init(u32 nev, void *tools)
 {
-	if (NULL != ei || NULL != event_list) {
+	int err;
+
+	if (NULL != ei) {
 		esma_engine_log_ftl("%s() - double reactor initialization\n", __func__);
 		exit(0);
 	}
 
 	ei = tools;
 
-	esma_channels = esma_malloc(sizeof(struct esma_channels *) * nev);
-	if (NULL == esma_channels) {
-		esma_engine_log_ftl("%s() - esma_malloc('esma_channels', %d): failed\n",
-				__func__, nev);
+	err = esma_array_init(&event_list, nev, sizeof(struct pollfd));
+	if (err) {
+		esma_reactor_log_ftl("%s() - can't init event_list\n", __func__);
+		exit(1);
 	}
 
-	event_list = esma_malloc(sizeof(struct pollfd) * nev);
-	if (NULL == event_list) {
-		esma_engine_log_ftl("%s() - esma_malloc('fds', %d): failed\n",
-				__func__, nev);
-		exit(0);
+	err = esma_array_init(&channels, nev, sizeof(struct esma_channels *));
+	if (err) {
+		esma_reactor_log_ftl("%s() - can't init channels\n", __func__);
+		exit(1);
 	}
-
-	max_events = nev;
 }
 
 static void poll_reactor__fini(void)
 {
-	esma_free(event_list);
-}
-
-static int __poll_reactor_expand(void)
-{
-	struct pollfd *events = NULL;
-	   int new_max_events = max_events << 1;
-
-	events = esma_realloc(events, new_max_events * sizeof(struct pollfd));
-	if (NULL == events) {
-		return 1;
-	}
-
-	event_list = events;
-	max_events = new_max_events;
-	return 0;
+	esma_array_free(&event_list);
+	esma_array_free(&channels);
 }
 
 static int poll_reactor__add(int fd, struct esma_channel *ch)
 {
-	int err = 0;
-	if (nevents == max_events) {
-		err = __poll_reactor_expand();
-		if (err) {
-			esma_engine_log_err("%s() - can't expand event_list\n", __func__);
-			return 1;
-		}
-	}
+	struct pollfd *event = esma_array_push(&event_list);
+	struct esma_channel **channel = esma_array_push(&channels);
 
-	event_list[nevents].fd = fd;
-	esma_channels[nevents] = ch;
-
-	ch->index = nevents;
-	nevents++;
-
+	event->fd = fd;
+	*channel = ch;
+	
+	ch->index = event_list.nitems - 1;
 	return 0;
 }
 
@@ -97,10 +72,11 @@ static int poll_reactor__del(int fd, struct esma_channel *ch)
 	if (ch->index < 0)
 		return 1;
 
-	nevents--;
-	
-	event_list[ch->index] = event_list[nevents];
-	esma_channels[ch->index] = esma_channels[nevents];
+	struct pollfd *del_event = esma_array_n(&event_list, ch->index);
+	struct esma_channel **del_channel = esma_array_n(&channels, ch->index);
+
+	*del_event = *(struct pollfd *) esma_array_pop(&event_list);
+	*del_channel = *(struct esma_channel **) esma_array_pop(&channels);
 
 	ch->index = -1;
 	return 0;
@@ -108,6 +84,7 @@ static int poll_reactor__del(int fd, struct esma_channel *ch)
 
 static int poll_reactor__mod(int fd, struct esma_channel *ch, u32 event)
 {
+	struct pollfd *ev = esma_array_n(&event_list, ch->index);
 	u32 e = 0;
 
 	if (ch->index < 0)
@@ -121,8 +98,7 @@ static int poll_reactor__mod(int fd, struct esma_channel *ch, u32 event)
 		e |= POLLOUT;
 	}
 
-	event_list[ch->index].events = e;
-
+	ev->events = e;
 	return 0;
 }
 
@@ -131,8 +107,10 @@ static void poll_reactor__wait(void)
 	struct esma_ring_buffer *msg_queue = &ei->msg_queue;
 	int ready;
 
-	ready = poll(event_list, nevents, -1);
-	
+	struct pollfd *pfds = event_list.items;
+	u32 n_pfds = event_list.nitems;
+	ready = poll(pfds, n_pfds, -1);
+
 	if (-1 == ready) {
 		if (EINTR == errno)
 			return;
@@ -141,15 +119,17 @@ static void poll_reactor__wait(void)
 		exit(1);
 	}
 
-	for (int i = 0; i < nevents && ready; i++) {
+	for (int i = 0; i < event_list.nitems && ready; i++) {
+		struct pollfd *pfd = esma_array_n(&event_list, i);
+		struct esma_channel **ch = esma_array_n(&channels, i);
 		struct esma_message *msg;
 		u32 revents;
 		u32 e = 0;
 
-		if (-1 == event_list[i].fd || 0 == event_list[i].revents)
+		if (-1 == pfd->fd || 0 == pfd->revents)
 			continue;
 
-		revents = event_list[i].revents;
+		revents = pfd->revents;
 
 		if (revents & POLLIN)
 			e |= ESMA_POLLIN;
@@ -168,7 +148,7 @@ static void poll_reactor__wait(void)
 
 		msg->src = NULL;
 		msg->dst = NULL;
-		msg->ptr = esma_channels[i];
+		msg->ptr = *ch;
 		msg->code = e;
 
 		ready--;
