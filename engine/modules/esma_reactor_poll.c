@@ -30,7 +30,7 @@ static void poll_reactor__init(u32 nev, void *tools)
 	int err;
 
 	if (NULL != ei) {
-		esma_engine_log_ftl("%s() - double reactor initialization\n", __func__);
+		esma_reactor_log_ftl("%s() - double reactor initialization\n", __func__);
 		exit(0);
 	}
 
@@ -107,15 +107,13 @@ static void poll_reactor__wait(void)
 	struct esma_ring_buffer *msg_queue = &ei->msg_queue;
 	int ready;
 
-	struct pollfd *pfds = event_list.items;
-	u32 n_pfds = event_list.nitems;
-	ready = poll(pfds, n_pfds, -1);
+	ready = poll(event_list.items, event_list.nitems, -1);
 
 	if (-1 == ready) {
 		if (EINTR == errno)
 			return;
 
-		esma_engine_log_ftl("%s() - poll error: %s\n", __func__, strerror(errno));
+		esma_reactor_log_ftl("%s() - poll error: %s\n", __func__, strerror(errno));
 		exit(1);
 	}
 
@@ -142,7 +140,7 @@ static void poll_reactor__wait(void)
 
 		msg = esma_ring_buffer_put(msg_queue);
 		if (NULL == msg) {
-			esma_engine_log_ftl("%s() - can't put msg\n", __func__);
+			esma_reactor_log_ftl("%s() - can't put msg\n", __func__);
 			exit(1);
 		}
 
