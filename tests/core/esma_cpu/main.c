@@ -11,12 +11,17 @@ static void print_info(void)
 {
 	printf("brand_string:		%s\n", cpuinfo.brand_string);
 	printf("vendor_string:		%s\n", cpuinfo.vendor_string);
+	printf("\n");
 	printf("cpuinfo.sse:		%s\n", cpuinfo.sse    ? "yes" : "no");
 	printf("cpuinfo.sse2:		%s\n", cpuinfo.sse2   ? "yes" : "no");
 	printf("cpuinfo.sse3:		%s\n", cpuinfo.sse3   ? "yes" : "no");
 	printf("cpuinfo.ssse3:		%s\n", cpuinfo.ssse3  ? "yes" : "no");
 	printf("cpuinfo.sse4_1:		%s\n", cpuinfo.sse4_1 ? "yes" : "no");
 	printf("cpuinfo.sse4_2:		%s\n", cpuinfo.sse4_2 ? "yes" : "no");	
+
+	printf("l1 cache line size:	%d\n", cpuinfo.l1_cache_line_size);
+	printf("l2 cache line size:	%d\n", cpuinfo.l2_cache_line_size);
+	printf("l3 cache line size:	%d\n", cpuinfo.l3_cache_line_size);
 }
 
 #define SLEEP_TIME	(1000000)

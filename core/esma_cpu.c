@@ -33,16 +33,6 @@ __attribute__((constructor))
 #endif
 void esma_cpuid(void)
 {
-	/* Getting brand string */
-	_cpuid(0x80000002);
-	memcpy(cpuinfo.brand_string, &cpu, sizeof(struct cpu));
-	_cpuid(0x80000003);
-	memcpy(cpuinfo.brand_string + 16, &cpu, sizeof(struct cpu));
-	_cpuid(0x80000004);
-	memcpy(cpuinfo.brand_string + 32, &cpu, sizeof(struct cpu));
-	cpuinfo.brand_string[48] = 0;
-	/*  */
-
 	/* Getting vendor info */
 	_cpuid(0);
 	memcpy(cpuinfo.vendor_string, &cpu.ebx, sizeof(u32));
@@ -59,4 +49,23 @@ void esma_cpuid(void)
 	cpuinfo.ssse3	= cpu.ecx & (1 << 9)  || 0;
 	cpuinfo.sse4_1	= cpu.ecx & (1 << 19) || 0;
 	cpuinfo.sse4_2	= cpu.ecx & (1 << 20) || 0;
+	/*  */
+
+	/* Getting brand string */
+	_cpuid(0x80000002);
+	memcpy(cpuinfo.brand_string, &cpu, sizeof(struct cpu));
+	_cpuid(0x80000003);
+	memcpy(cpuinfo.brand_string + 16, &cpu, sizeof(struct cpu));
+	_cpuid(0x80000004);
+	memcpy(cpuinfo.brand_string + 32, &cpu, sizeof(struct cpu));
+	cpuinfo.brand_string[48] = 0;
+	/*  */
+
+	/* Getting cache info */
+	_cpuid(0x80000005);
+	cpuinfo.l1_cache_line_size = cpu.ecx & 0x000000FF; /* data L1 */
+	_cpuid(0x80000006);
+	cpuinfo.l2_cache_line_size = cpu.ecx & 0x000000FF;
+	cpuinfo.l3_cache_line_size = cpu.edx & 0x000000FF;
+	/*  */
 }

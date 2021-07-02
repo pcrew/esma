@@ -21,6 +21,11 @@ struct esma_cpuinfo {
 	u8 sse4_1;
 	u8 sse4_2;
 	u8 ssse3;
+
+	/* cache info */
+	u32 l1_cache_line_size;
+	u32 l2_cache_line_size;
+	u32 l3_cache_line_size;
 };
 
 extern struct esma_cpuinfo cpuinfo;
