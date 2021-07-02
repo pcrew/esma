@@ -4,21 +4,28 @@
 
 #include "common/numeric_types.h"
 
-extern u32 cpu_vendor_info[5];
-extern u32 cpu_info[4];
+struct esma_cpuinfo {
+	/* brand section */
+	char brand_string[64];
+	char vendor_string[16];
 
-extern u32 cpu_base_frequency;
-extern u32 cpu_max_frequency;
-extern u32 cpu_bus_frequency;
+	/* frequency section */
+	u32 base_frq;
+	u32 max_frq;
+	u32 bus_frq;
+
+	/* sse section */
+	u8 sse;
+	u8 sse2;
+	u8 sse3;
+	u8 sse4_1;
+	u8 sse4_2;
+	u8 ssse3;
+};
+
+extern struct esma_cpuinfo cpuinfo;
 
 extern u32 cpu_cacheline_size;
-
-extern u32 cpu_supported_sse;
-extern u32 cpu_supported_sse2;
-extern u32 cpu_supported_sse3;
-extern u32 cpu_supported_sse4_1;
-extern u32 cpu_supported_sse4_2;
-extern u32 cpu_supported_ssse3;
 
 void esma_cpuid(void);
 

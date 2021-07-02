@@ -9,16 +9,17 @@
 
 static void print_info(void)
 {
-	printf("cpu_cacheline_size:	%d\n", cpu_cacheline_size);
-	printf("cpu_supported_sse:	%s\n", cpu_supported_sse == 1 ? "yes" : "no");
-	printf("cpu_supported_sse2:	%s\n", cpu_supported_sse2 == 1 ? "yes" : "no");
-	printf("cpu_supported_sse3:	%s\n", cpu_supported_sse3 == 1 ? "yes" : "no");
-	printf("cpu_supported_ssse3:	%s\n", cpu_supported_ssse3 == 1 ? "yes" : "no");
-	printf("cpu_supported_sse4_1:	%s\n", cpu_supported_sse4_1 == 1 ? "yes" : "no");
-	printf("cpu_supported_sse4_2:	%s\n", cpu_supported_sse4_2 == 1 ? "yes" : "no");	
+	printf("brand_string:		%s\n", cpuinfo.brand_string);
+	printf("vendor_string:		%s\n", cpuinfo.vendor_string);
+	printf("cpuinfo.sse:		%s\n", cpuinfo.sse    ? "yes" : "no");
+	printf("cpuinfo.sse2:		%s\n", cpuinfo.sse2   ? "yes" : "no");
+	printf("cpuinfo.sse3:		%s\n", cpuinfo.sse3   ? "yes" : "no");
+	printf("cpuinfo.ssse3:		%s\n", cpuinfo.ssse3  ? "yes" : "no");
+	printf("cpuinfo.sse4_1:		%s\n", cpuinfo.sse4_1 ? "yes" : "no");
+	printf("cpuinfo.sse4_2:		%s\n", cpuinfo.sse4_2 ? "yes" : "no");	
 }
 
-#define SLEEP_TIME	(10000000)
+#define SLEEP_TIME	(1000000)
 
 int main()
 {
