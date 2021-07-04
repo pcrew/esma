@@ -86,6 +86,9 @@ void esma_cpuid(void)
 	cpu = _cpuid(0x8FFFFFFF);
 	memcpy(cpuinfo.mystery_string, &cpu, sizeof(struct cpu));
 	cpuinfo.mystery_string[15] = 0;
+	/*  */
+
+	cpuinfo.status = 1;
 }
 
 u32 cpu_current_core_clock_frequency(void)

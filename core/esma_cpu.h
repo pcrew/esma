@@ -33,6 +33,8 @@ union esma_cacheinfo {
 };
 
 struct esma_cpuinfo {
+	int status;	/* initialize or not */
+
 	/* brand section */
 	char brand_string[64];
 	char vendor_string[16];
