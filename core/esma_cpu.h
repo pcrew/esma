@@ -4,6 +4,34 @@
 
 #include "common/numeric_types.h"
 
+/*
+ * see: https://sandpile.org/x86/cpuid.htm#level_8000_0005h
+ */
+
+union esma_cacheinfo {
+	u32 reg;
+	struct {
+		u8 line_size_in_bytes;
+		u8 lines_per_tag;
+		u8 associativity;
+		u8 size_in_kbs;
+	} l1;
+	struct {
+		u8 line_size_in_bytes;
+		u8 lines_per_tag : 4;
+		u8 associativity : 4;
+		u16 size_in_kbs;
+	} l2;
+
+	struct {
+		u8 line_size_in_bytes;
+		u8 lines_per_tag : 4;
+		u8 associativity : 4;
+		u16 reserved : 2;
+		u16 size_in_512kb_chunks : 14;
+	} l3;
+};
+
 struct esma_cpuinfo {
 	/* brand section */
 	char brand_string[64];
@@ -22,10 +50,13 @@ struct esma_cpuinfo {
 	u8 sse4_2;
 	u8 ssse3;
 
-	/* cache info */
-	u32 l1_cache_line_size;
-	u32 l2_cache_line_size;
-	u32 l3_cache_line_size;
+	/* cacheinfo */
+	union esma_cacheinfo l1_data;
+	union esma_cacheinfo l1_code;
+	union esma_cacheinfo l2;
+	union esma_cacheinfo l3;
+
+	char mystery_string[16];
 };
 
 extern struct esma_cpuinfo cpuinfo;
@@ -33,6 +64,11 @@ extern struct esma_cpuinfo cpuinfo;
 extern u32 cpu_cacheline_size;
 
 void esma_cpuid(void);
+
+u32 cpu_current_core_clock_frequency(void);
+u32 cpu_current_core_clock_voltage(void);
+u32 cpu_current_preformance_level(void);
+u32 cpu_current_gate_delay(void);
 
 #if !__ARM__
 static inline u64 esma_rdtsc(void)
