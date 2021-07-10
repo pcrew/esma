@@ -19,6 +19,7 @@ export CORE UTILS ENGINE ENGINE_MODULES
 all:
 	@$(MAKE) -C utils
 	@$(MAKE) -C core
+	@$(MAKE) -C plugins
 	@$(MAKE) -C engine
 	@$(MAKE) -C tests
 	@$(MAKE) -C programs
