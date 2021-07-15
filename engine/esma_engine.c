@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "core/esma_time.h"
 #include "core/esma_alloc.h"
 #include "core/esma_logger.h"
 #include "core/esma_mempool.h"
@@ -254,6 +255,8 @@ int esma_engine_exec()
 {
 	struct esma_message *msg;
 	   int ret = 0;
+
+	esma_time_update();
 
 	while (1) {
 		msg = esma_ring_buffer_get(&engine_info.msg_queue);
