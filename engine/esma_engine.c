@@ -241,13 +241,18 @@ void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 cod
 	msg->code = code;
 }
 
-int esma_engine_init(u32 ngn_id)
+int esma_engine_init(u32 ngn_id, char *reactor_name)
 {
 	struct esma_engine_info *ei;
 	int err;
 
 	if (ngn_id > ngn_cap) {
 		exit(1);
+	}
+
+	if (NULL == reactor_name) {
+		esma_engine_log_inf("%s() - nameless reactor; using 'reactor_epll'\n", __func__);
+		reactor_name = "reactor_epoll";
 	}
 
 	ei = esma_array_n(&engines, ngn_id);
@@ -270,10 +275,10 @@ int esma_engine_init(u32 ngn_id)
 	ei->status = 1;
 
 	if (0 == ngn_id) {
-		reactor = get_api("reactor_epoll");	/* For test */
+		reactor = get_api(reactor_name);
 		if (NULL == reactor) {
 			esma_engine_log_ftl("%s() - can't get reactor '%s'\n",
-					__func__, "reactor_epoll");
+					__func__, reactor_name);
 			exit(1);
 		}
 		reactor->init(32, ei);

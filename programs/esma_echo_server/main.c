@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	err = esma_engine_init(0);
+	err = esma_engine_init(0, "reactor_epoll");
 	if (err) {
 		esma_user_log_ftl("esma_engine_init(0): failed\n", "");
 		return 1;

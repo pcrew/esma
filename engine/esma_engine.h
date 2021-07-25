@@ -71,7 +71,7 @@ struct esma *esma_engine_new_machine(struct esma_template *et, char *name, u32 e
   void esma_engine_run_machine(struct esma *esma, void *dptr);
   void esma_engine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
 
-   int esma_engine_init(u32 engine_id);
+   int esma_engine_init(u32 engine_id, char *reactor_name);
    int esma_engine_exec(u32 engine_id);
   void esma_engine_wait(void);	/* use only in main thread */
 
