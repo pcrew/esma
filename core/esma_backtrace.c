@@ -67,13 +67,13 @@ int esma_backtrace_init(u32 depth)
 
 	err = sigaction(SIGBUS, &sa, NULL);
 	if (err) {
-		esma_core_log_sys("%s() - sigaction('SIGSEGV'): failed.\n", __func__);
+		esma_core_log_sys("%s() - sigaction('SIGBUS'): failed.\n", __func__);
 		return 1;
 	}
 
 	err = sigaction(SIGILL, &sa, NULL);
 	if (err) {
-		esma_core_log_sys("%s() - sigaction('SIGSEGV'): failed.\n", __func__);
+		esma_core_log_sys("%s() - sigaction('SIGILL'): failed.\n", __func__);
 		return 1;
 	}
 
