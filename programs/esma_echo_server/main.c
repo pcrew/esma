@@ -8,6 +8,7 @@
 #include "core/esma_alloc.h"
 #include "core/esma_array.h"
 #include "core/esma_logger.h"
+#include "core/esma_backtrace.h"
 
 #include "common/api.h"
 
@@ -72,6 +73,12 @@ int main(int argc, char **argv)
 
 	esma_logger_set_log_level(ESMA_LOG_DBG);
 	esma_logger_set_log_flags(LOGGING_FLAGS);
+
+	err = esma_backtrace_init(32);
+	if (err) {
+		esma_user_log_err("esma_backtrace_init(32): failed.\n", "");
+		return 1;
+	}
 
 	esma_engine_set_number_of_engines(1);
 
