@@ -3,17 +3,6 @@ TOPDIR := $(shell /bin/pwd)
 INCDIR := $(TOPDIR)
 
 CC = $(CROSS_COMPILE)gcc
-STRIP = $(CROSS_COMPILE)strip
-CFLAGS += -Wall -I$(INCDIR) -O2 -D_FILE_OFFSET_BITS=64
-#CFLAGS += -Wall -Os -I$(INCDIR) -g -D_FILE_OFFSET_BITS=64
-
-export CC STRIP CFLAGS TOPDIR INCDIR
-
-CORE = $(TOPDIR)/core/*.o
-UTILS = $(TOPDIR)/utils/*.o
-ENGINE = $(TOPDIR)/engine/*.o
-ENGINE_MODULES = $(TOPDIR)/engine/modules/*.o
-
 export CORE UTILS ENGINE ENGINE_MODULES
 
 all:
