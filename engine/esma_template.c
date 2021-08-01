@@ -209,10 +209,10 @@ enum states {
 };
 
 struct esma_template_internal {
-	int flags;
 	int code;
-	int ch_type;
-	int ch_data;
+	u32 flags;
+	u32 ch_type;
+	u32 ch_data;
 
 	struct esma_state_template *est_src;
 	struct esma_state_template *est_dst;
@@ -220,10 +220,10 @@ struct esma_template_internal {
 
 static void _esma_template_internal_clean(struct esma_template_internal *eti)
 {
-	eti->flags = -1;
 	eti->code = -1;
+	eti->flags = 0;
 	eti->ch_type = ESMA_CH_NONE;
-	eti->ch_data = -1;
+	eti->ch_data = 0;
 	eti->est_src = NULL;
 	eti->est_dst = NULL;
 }
@@ -248,7 +248,6 @@ static int _new_esma_state_template(struct esma_template *tmpl, char *name, u32 
 	return 0;
 }
 
-/* TODO: необходимо добавлять состояния по индексу кода; сейчас делается обычный push */
 static int _new_esma_trans_template(struct esma_template_internal *eti)
 {
 	struct esma_trans_template *trans;
@@ -301,7 +300,9 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 	_esma_template_internal_clean(&eti);
 	t = p;
 	s = p;
-	while (p != end) {
+
+	#define IS_NOT_END(p)	(p != end)
+	while (IS_NOT_END(p)) {
 
 		if ('/' == *p && '/' == *(p + 1)) {
 			while (*p != '\n')
@@ -325,7 +326,6 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 		case st_start:
 		case st_idle:
 
-/* TODO: Добавить проверку наличия двух и более секций states в конфигурации: в случае нахождения второй секции выходить с ошибкой */
 			if (end - p >= 6) {
 				if (str_6_cmp(p, 's','t','a','t','e','s')) {
 					state = st_state_section;
@@ -433,13 +433,7 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			}
 
 			if (4 == t - s) { /* for special states - init and fini */
-				if (str_4_cmp(s, 'i','n','i','t')) {
-					p += 4;
-					state = st_state_name_leave;
-					break;
-				}
-
-				if (str_4_cmp(s, 'f','i','n','i')) {
+				if (str_4_cmp(s, 'i','n','i','t') || str_4_cmp(s, 'f','i','n','i')) {
 					p += 4;
 					state = st_state_name_leave;
 					break;
@@ -665,7 +659,7 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			if (1 == ret) {
 				p = s + 1;
 				eti.ch_type = ESMA_CH_SIGN;
-				state = st_trans_code_channel_sign_number;;
+				state = st_trans_code_channel_sign_number;
 				break;
 			}
 
@@ -684,27 +678,26 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			if (s == p)
 				goto __fail;
 
-			if (*s == 'm' && *(s + 1) == 's') {
+			if (str_2_cmp(s, 'm','s')) {
 				ret = sscanf(p, "%dms", &eti.ch_data);
-				if (ret != 1) {
-					esma_engine_log_err("%s()/%s - section 'trans': can't read tick interval\n",
-							__func__, et->name);
-					goto __fail;
-				}
+				if (1 != ret)
+					eti.ch_data = 0;
 
 				p = s + 2;
+			} else if (*s == 's') {
+				ret = sscanf(p, "%ds", &eti.ch_data);
+				if (ret)
+					eti.ch_data *= 1000;
+				else
+					eti.ch_data = 0;
+
+				p = s + 1;
 			}
 
-			if (*s == 's') {
-				ret = sscanf(p, "%ds", &eti.ch_data);
-				if (ret != 1) {
-					esma_engine_log_err("%s()/%s - section 'trans': can't read tick interval\n",
-							__func__, et->name);
-					goto __fail;
-				}
-
-				eti.ch_data *= 1000;
-				p = s + 1;
+			if (0 == eti.ch_data) {
+				esma_engine_log_err("%s()/%s - section 'trans': can't read tick interval\n",
+						__func__, et->name);
+				goto __fail;
 			}
 
 			while (IS_DELIM(p)) {
@@ -727,86 +720,43 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			goto __fail;
 
 		case st_trans_code_channel_tick_interval_period:
+
 			s = p;
 
-			while (IS_LETTER(p)) {
-				p++;
+			while (IS_LETTER(s) || IS_UNDERSCORE(s)) {
+				s++;
 			}
 
-			if (p - s != 4)	{ /* 'ESMA' */
-				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-				goto __fail;
-			}
+			if (str_8_cmp(p, 'E','S','M','A','_','T','M','_')) {
+				switch (s - p - 8) {
+					case 8:	/* 'PERIODIC' */
+						if (str_8_cmp(p + 8, 'P','E','R','I','O','D','I','C')) {
+							eti.flags = ESMA_TM_PERIODIC;
+						}
 
-			if (!str_4_cmp(s, 'E','S','M','A')) {
-				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-				goto __fail;
-			}
-
-			if (IS_NOT_UNDERSCORE(p)) {
-				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-				goto __fail;
-			}
-
-			p++;
-
-			if ('T' != *p || 'M' != *(p + 1)) {
-				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-				goto __fail;
-			}
-
-			p += 2;
-
-			if (IS_NOT_UNDERSCORE(p)) {
-				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-				goto __fail;
-			}
-
-			p++;
-			s = p;
-
-			while (IS_LETTER(p)) {
-				p++;
-			}
-
-			switch (p - s) {
-				case 8:	/* 'PERIODIC' */
-					if (str_8_cmp(s, 'P','E','R','I','O','D','I','C')) {
-						state = st_trans_semicolon;
-						eti.flags = ESMA_TM_PERIODIC;
 						break;
-					}
 
-					esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
+					case 7:	/* 'ONESHOT' */
+						if (str_7_cmp(p + 8, 'O','N','E','S','H','O','T')) {
+							eti.flags = ESMA_TM_ONESHOT;
+						}
 
-					goto __fail;
-
-				case 7:	/* 'ONESHOT' */
-					if (str_7_cmp(s, 'O','N','E','S','H','O','T')) {
-						state = st_trans_semicolon;
-						eti.flags = ESMA_TM_ONESHOT;
 						break;
-					}
 
-					esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-
-					goto __fail;
-
-				default:
-
-					esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid period name\n",
-						__func__, et->name);
-
-					goto __fail;
+					default:
+						break;
+				}
 			}
 
+			if (0 == eti.flags) {
+				*s = 0;
+				esma_engine_log_err("%s()/%s - section 'trans': tick interval: invalid or unsupported period name '%s'\n",
+						__func__, et->name, p);
+				goto __fail;
+			}
+
+			p = s;
+			state = st_trans_semicolon;
 			break;
 
 		case st_trans_code_channel_sign_number:
@@ -820,194 +770,127 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 				goto __fail;
 			}
 
+			eti.ch_data = 0;
 			p += 3;
 			switch (s - p) {
 			case 3:
-				if (str_3_cmp(p, 'B', 'U', 'S')) {
-					eti.ch_data = SIGBUS;
-					state = st_trans_semicolon;
-					break;
-				}
-
 				if (str_3_cmp(p, 'F', 'P', 'E')) {
 					eti.ch_data = SIGFPE;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_3_cmp(p, 'H', 'U', 'P')) {
 					eti.ch_data = SIGHUP;
-					state = st_trans_semicolon;
-					break;
-				}
-
-				if (str_3_cmp(p, 'I', 'L', 'L')) {
-					eti.ch_data = SIGILL;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_3_cmp(p, 'I', 'N', 'T')) {
 					eti.ch_data = SIGINT;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_3_cmp(p, 'S', 'Y', 'S')) {
 					eti.ch_data = SIGSYS;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_3_cmp(p, 'U', 'R', 'G')) {
 					eti.ch_data = SIGURG;
-					state = st_trans_semicolon;
-					break;
 				}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid signal name\n", __func__, et->name);
-				goto __fail;
+				break;
 
 			case 4:
 				if (str_4_cmp(p, 'A', 'B', 'R', 'T')) {
 					eti.ch_data = SIGABRT;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'A', 'L', 'R', 'M')) {
 					eti.ch_data = SIGALRM;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'C', 'H', 'L', 'D')) {
 					eti.ch_data = SIGCHLD;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'C', 'O', 'N', 'T')) {
 					eti.ch_data = SIGCONT;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'K', 'I', 'L', 'L')) {
 					eti.ch_data = SIGKILL;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'P', 'I', 'P', 'E')) {
 					eti.ch_data = SIGPIPE;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'Q', 'U', 'I', 'T')) {
 					eti.ch_data = SIGQUIT;
-					state = st_trans_semicolon;
-					break;
-				}
-
-				if (str_4_cmp(p, 'S', 'E', 'G', 'V')) {
-					eti.ch_data = SIGSEGV;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'S', 'T', 'O', 'P')) {
 					eti.ch_data = SIGSTOP;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'E', 'R', 'M')) {
 					eti.ch_data = SIGTERM;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'S', 'T', 'P')) {
 					eti.ch_data = SIGTSTP;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'T', 'I', 'N')) {
 					eti.ch_data = SIGTTIN;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'T', 'O', 'U')) {
 					eti.ch_data = SIGTTOU;
-					state = st_trans_semicolon;
-					break;
 				}
-
 
 				if (str_4_cmp(p, 'U', 'S', 'R', '1')) {
 					eti.ch_data = SIGUSR1;
-					state = st_trans_semicolon;
-					break;
 				}
-
 
 				if (str_4_cmp(p, 'U', 'S', 'R', '2')) {
 					eti.ch_data = SIGUSR2;
-					state = st_trans_semicolon;
-					break;
 				}
-
 
 				if (str_4_cmp(p, 'P', 'O', 'L', 'L')) {
 					eti.ch_data = SIGPOLL;
-					state = st_trans_semicolon;
-					break;
 				}
-
 
 				if (str_4_cmp(p, 'P', 'R', 'O', 'F')) {
 					eti.ch_data = SIGPROF;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'T', 'R', 'A', 'P')) {
 					eti.ch_data = SIGTRAP;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'X', 'C', 'P', 'U')) {
 					eti.ch_data = SIGXCPU;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_4_cmp(p, 'X', 'C', 'P', 'U')) {
 					eti.ch_data = SIGXCPU;
-					state = st_trans_semicolon;
-					break;
 				}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid signal name\n", __func__, et->name);
-				goto __fail;
+				break;
 
 			default:
-
 				if (str_6_cmp(p, 'V', 'T', 'A', 'L', 'R', 'M')) {
 					eti.ch_data = SIGVTALRM;
-					state = st_trans_semicolon;
-					break;
 				}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid signal name\n", __func__, et->name);
+				break;
+			}
+
+			if (0 == eti.ch_data) {
+				*s = 0;
+				esma_engine_log_err("%s()/%s - section 'trans': invalid or not supported signal '%s'\n",
+						__func__, et->name, p - 3);
 				goto __fail;
 			}
 
+			state = st_trans_semicolon;
 			p = s;
 			break;
 
@@ -1027,42 +910,36 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			case 7:
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'O', 'U', 'T')) {
 					eti.ch_data = ESMA_POLLOUT;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'E', 'R', 'R')) {
 					eti.ch_data = ESMA_POLLERR;
-					state = st_trans_semicolon;
-					break;
 				}
 
 				if (str_7_cmp(p, 'P', 'O', 'L', 'L', 'H', 'U', 'P')) {
 					eti.ch_data = ESMA_POLLHUP;
-					state = st_trans_semicolon;
-					break;
 				}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid event name\n", __func__, et->name);
-				goto __fail;
-
+				break;
 			case 6:
 				if (str_6_cmp(p, 'P', 'O', 'L', 'L', 'I', 'N')) {
 					eti.ch_data = ESMA_POLLIN;
-					state = st_trans_semicolon;
-					break;
 				}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid event name\n", __func__, et->name);
-				goto __fail;;;;;;;;;;;;;;;;;;;;
-
+				break;
 			default:
+				break;
+			}
 
-				esma_engine_log_err("%s()/%s - section 'trans': invalid event name\n", __func__, et->name);
-				goto __fail;;;;;;;;;;;;;;;;;;;;
+			if (0 == eti.ch_data) {
+				*s = 0;
+				esma_engine_log_err("%s()/%s - section 'trans': invalid or unsipported event name '%s'\n",
+						__func__, et->name, p - 5);
+				goto __fail;
 			}
 
 			p = s;
+			state = st_trans_semicolon;
 			break;
 
 		case st_trans_semicolon:
