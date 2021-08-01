@@ -37,7 +37,7 @@ int esma_ring_buffer_init(struct esma_ring_buffer *rb, u32 item_size, u32 cap)
 	rb->item_size = item_size;
 
 	rb->tail = 0;
-	rb->head = 0xFFFFFFFF;
+	rb->head = ~0;
 	rb->mask = cap - 1;
 	rb->size = 0;
 	rb->cap = cap;
@@ -103,9 +103,20 @@ static int _esma_ring_buffer_expand(struct esma_ring_buffer *rb)
 		return 1;
 	}
 
+	/* shift unread messages */
+	if (rb->head != rb->cap - 1) {
+		void *unread_msg = rb->data + rb->item_size * rb->head;
+		u32 delta = rb->cap - rb->head;
+		void *memory = unread_msg + delta;
+
+		memmove(unread_msg, memory, delta * rb->item_size);
+		rb->head += delta;
+	}
+
 	rb->data = data;
 	rb->mask = newcap - 1;
 	rb->cap  = newcap;
+
 	return 0;
 }
 
