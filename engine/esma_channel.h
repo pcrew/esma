@@ -12,8 +12,8 @@
 #define ESMA_CH_DATA			3
 #define ESMA_CH_SIGN			4
 
-#define ESMA_TM_ONESHOT			0
-#define ESMA_TM_PERIODIC		1
+#define ESMA_TM_ONESHOT			0x1
+#define ESMA_TM_PERIODIC		0x2
 
 #define ESMA_LISTENING_CHANNEL		0x01
 
