@@ -142,7 +142,7 @@ static int __master_init_slaves(struct esma *master)
 
 		sprintf(name, "slave_%d", i);
 
-		err = esma_engine_init_machine(slave, name, &slave_tmpl, 0);
+		err = esma_engine_init_machine(slave, name, &slave_tmpl);
 		if (err) {
 			esma_user_log_err("%s()/%s - esma_engine_init_machine(slave: '%s'): failed\n", __func__, master->name, name);
 			goto __fail;

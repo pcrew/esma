@@ -56,24 +56,19 @@ struct esma {
 	struct esma_array states;
         struct state *current_state;
 
-        u32 engine_id; /* 0 for global */
-
         struct esma_channel io_channel;
-
         void *data;
 };
 
-int esma_engine_set_number_of_engines(int cnt);
-
-struct esma *esma_engine_new_machine(struct esma_template *et, char *name, u32 engine_id);
-   int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl, u32 engine_id);
+struct esma *esma_engine_new_machine(struct esma_template *et, char *name);
+   int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl);
   void esma_engine_del_machine(struct esma *esma);
   void esma_engine_run_machine(struct esma *esma, void *dptr);
   void esma_engine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
 
-   int esma_engine_init(u32 engine_id, char *reactor_name);
-   int esma_engine_exec(u32 engine_id);
-  void esma_engine_wait(void);	/* use only in main thread */
+   int esma_engine_init(char *reactor_name);
+   int esma_engine_exec(void);
+  void esma_engine_wait(void);
 
   void esma_engine_init_io_channel(struct esma *self, int fd);
   void esma_engine_free_io_channel(struct esma *self);

@@ -23,29 +23,8 @@
 #include "esma_engine_common.h"
 #include "esma_engine_dispatcher.h"
 
-static int ngn_cap = 0;
-static struct esma_array engines;
-
 static struct reactor *reactor;
-
-int esma_engine_set_number_of_engines(int cap)
-{
-	int err;
-
-	if (cap < 0)
-		exit(1);
-
-	ngn_cap = cap;
-
-	esma_engine_log_inf("%s() - cap: %d\n", __func__, ngn_cap);
-	err = esma_array_init(&engines, ngn_cap, sizeof(struct esma_engine_info));
-	if (err) {
-		esma_engine_log_ftl("%s() - esma_array_init(%d): failed\n", __func__, cap);
-		exit(1);
-	}
-
-	return cap;
-}
+static struct esma_engine_info engine_info;
 
 static int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 {
@@ -129,7 +108,7 @@ __fail:
 	return 1;
 }
 
-int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl, u32 ngn_id)
+int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl)
 {
 	int err;
 
@@ -153,11 +132,10 @@ int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template
 		return 1;
 	}
 
-	esma->engine_id = ngn_id;
 	return 0;
 }
 
-struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name, u32 ngn_id)
+struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name)
 {
 	struct esma *esma = NULL;
 	   int err;
@@ -173,7 +151,7 @@ struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name, u32
 		return NULL;
 	}
 
-	err = esma_engine_init_machine(esma, name, tmpl, ngn_id);
+	err = esma_engine_init_machine(esma, name, tmpl);
 	if (err) {
 		esma_engine_log_ftl("%s()/%s - can't init machine\n", __func__, tmpl->name);
 		esma_engine_del_machine(esma);
@@ -224,11 +202,9 @@ void esma_engine_del_machine(struct esma *esma)
 
 void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
 {
-	struct esma_engine_info *ei;
 	struct esma_message *msg;
 
-	ei = esma_array_n(&engines, dst->engine_id);
-	msg = esma_ring_buffer_put(&ei->msg_queue);
+	msg = esma_ring_buffer_put(&engine_info.msg_queue);
 	if (NULL == msg) {
 		esma_engine_log_ftl("%s() - can't send message from '%s' to '%s'\n",
 				__func__, src->name, dst->name);
@@ -241,66 +217,46 @@ void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 cod
 	msg->code = code;
 }
 
-int esma_engine_init(u32 ngn_id, char *reactor_name)
+int esma_engine_init(char *reactor_name)
 {
-	struct esma_engine_info *ei;
 	int err;
-
-	if (ngn_id > ngn_cap) {
-		exit(1);
-	}
 
 	if (NULL == reactor_name) {
 		esma_engine_log_inf("%s() - nameless reactor; using 'reactor_epll'\n", __func__);
 		reactor_name = "reactor_epoll";
 	}
 
-	ei = esma_array_n(&engines, ngn_id);
-	if (NULL == ei) {
-		esma_engine_log_ftl("%s() - esma_engine_info[%d] is NULL\n", __func__, ngn_id);
-		exit(1);
-	}
-
-	if (ei->status) {
+	if (engine_info.status) {
 		return 1;
 	}
 
-	err = esma_ring_buffer_init(&ei->msg_queue, sizeof(struct esma_message), 128);
+	err = esma_ring_buffer_init(&engine_info.msg_queue, sizeof(struct esma_message), 128);
 	if (err) {
-		esma_engine_log_ftl("%s() - can't init ring buffer for '%d' engine\n",
-				__func__, ngn_id);
+		esma_engine_log_ftl("%s() - can't init ring buffer for engine\n",
+				__func__);
 		exit(1);
 	}
 
-	ei->status = 1;
+	engine_info.status = 1;
 
-	if (0 == ngn_id) {
-		reactor = get_api(reactor_name);
-		if (NULL == reactor) {
-			esma_engine_log_ftl("%s() - can't get reactor '%s'\n",
-					__func__, reactor_name);
-			exit(1);
-		}
-		reactor->init(32, ei);
+	reactor = get_api(reactor_name);
+	if (NULL == reactor) {
+		esma_engine_log_ftl("%s() - can't get reactor '%s'\n",
+				__func__, reactor_name);
+		exit(1);
 	}
+	reactor->init(32, &engine_info);
 
 	return 0;
 }
 
-int esma_engine_exec(u32 ngn_id)
+int esma_engine_exec()
 {
-	struct esma_engine_info *ei;
 	struct esma_message *msg;
 	   int ret = 0;
 
-	if (unlikely(ngn_id >= ngn_cap)) {
-		esma_engine_log_ftl("%s() - invalid engine id: %d\n", __func__, ngn_id);
-		exit(1);
-	}
-
-	ei = esma_array_n(&engines, ngn_id);
 	while (1) {
-		msg = esma_ring_buffer_get(&ei->msg_queue);
+		msg = esma_ring_buffer_get(&engine_info.msg_queue);
 		if (NULL == msg)
 			break;
 

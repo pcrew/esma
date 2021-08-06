@@ -80,8 +80,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	esma_engine_set_number_of_engines(1);
-
 	err = esma_template_init(&tmpl, "master");
 	if (err) {
 		esma_user_log_ftl("esma_template_init('master'): failed\n", "");
@@ -99,13 +97,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	err = esma_engine_init(0, "reactor_epoll");
+	err = esma_engine_init("reactor_epoll");
 	if (err) {
 		esma_user_log_ftl("esma_engine_init(0): failed\n", "");
 		return 1;
 	}
 
-	err = esma_engine_init_machine(&master, "master", &tmpl, 0);
+	err = esma_engine_init_machine(&master, "master", &tmpl);
 	if (err) {
 		esma_user_log_ftl("esma_engine_init_machine('master'): failed\n", "");
 		printf("failed\n");
@@ -117,7 +115,7 @@ int main(int argc, char **argv)
 	esma_engine_run_machine(&master, &port);
 
 	while (1) {
-		ret = esma_engine_exec(0);
+		ret = esma_engine_exec();
 		if (ret)
 			break;
 
