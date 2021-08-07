@@ -180,12 +180,6 @@ enum states {
 /* 5 */			st_state_name_leave,				/* 	; */
 /* 6 */		st_state_section_leave,					/* }; */
 
-/* 7 */	st_ticks_section,						/* ticks */
-/* 8 */		st_ticks_section_enter,					/* ticks { */
-/* 9 */			st_ticks_tick_enter,				/* 	T0: 1000ms */
-/* 10 */		st_ticks_tick_leave,				/* 	; */
-/* 11 */	st_ticks_section_leave,					/* }; */
-
 /* 12 */st_trans_section,						/* trans */
 /* 13 */	st_trans_section_enter,					/* trans { */
 /* 14 */		st_trans_state_src,				/* 	idle */
@@ -291,15 +285,13 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 	struct esma_template_internal eti;
 	char *p = line;
 	char *end = line + strlen(line) - 1;
-	char *t, *s; /* helpers pointers */
+	char *s; /* helpers pointers */
 
 	int state = st_start;
 	int err;
 	int ret;
 
 	_esma_template_internal_clean(&eti);
-	t = p;
-	s = p;
 
 	#define IS_NOT_END(p)	(p != end)
 	while (IS_NOT_END(p)) {
@@ -340,41 +332,9 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 					p += 5;
 					break;
 				}
-
-				if (str_5_cmp(p, 't','i','c','k','s')) {
-					state = st_ticks_section;
-					p += 5;
-					break;
-				}
 			}
 
 			p++;
-			break;
-
-		case st_ticks_section:
-
-			if (IS_NOT_OPEN_BRACE(p)) {
-				p++;
-				break;
-			}
-
-			state = st_ticks_section_enter;
-			p++;
-			break;
-
-		case st_ticks_section_enter:
-
-			if (IS_CLOSE_BRACE(p)) {
-				state = st_state_section_leave;
-				p++;
-				break;
-			}
-
-			if (IS_SEMICOLON(p)) {
-				p++;
-				break;
-			}
-
 			break;
 
 		case st_state_section:
@@ -413,7 +373,7 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 
 		case st_state_name_enter:
 
-			t = s = p;
+			s = p;
 
 			if (IS_CLOSE_BRACE(p)) {
 
@@ -428,25 +388,24 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 				break;
 			}
 
-			while(IS_VALID_STATE_CHAR(t)) {
-				t++;
+			while(IS_VALID_STATE_CHAR(s)) {
+				s++;
 			}
 
-			if (4 == t - s) { /* for special states - init and fini */
-				if (str_4_cmp(s, 'i','n','i','t') || str_4_cmp(s, 'f','i','n','i')) {
-					p += 4;
+			if (4 == s - p) { /* for special states - init and fini */
+				if (str_4_cmp(p, 'i','n','i','t') || str_4_cmp(p, 'f','i','n','i')) {
 					state = st_state_name_leave;
 					break;
 				}
 			}
 
-			err = _new_esma_state_template(et, s, t - s);
+			err = _new_esma_state_template(et, p, s - p);
 			if (err) {
 				esma_engine_log_err("%s()/%s - section 'states': _new_esma_state_template(): failed\n", __func__, et->name);
 				return err;
 			}
 
-			p = t;
+			p = s;
 			state = st_state_name_leave;
 			break;
 
@@ -504,10 +463,10 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 
 		case st_trans_state_src:
 
-			s = t = p;
+			s = p;
 
-			while (IS_VALID_STATE_CHAR(t)) {
-				t++;
+			while (IS_VALID_STATE_CHAR(s)) {
+				s++;
 			}
 
 			for (int i = 0; i < et->nstates; i++) {
@@ -518,10 +477,10 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 				if (NULL == tmpl)
 					break;
 
-				if (strlen(tmpl->name) != t - s)
+				if (strlen(tmpl->name) != s - p)
 					 continue;
 
-				mismatch = strncmp(tmpl->name, s, t - s);
+				mismatch = strncmp(tmpl->name, p, s - p);
 				if (mismatch)
 					 continue;
 
@@ -530,44 +489,38 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			}
 
 			if (NULL == eti.est_src) {
-				*t = 0;
+				*s = 0;
 				esma_engine_log_err("%s()/%s - section 'trans': src state '%s' not found\n", __func__, et->name, s);
 				goto __fail;
 			}
 
-			p = t;
+			p = s;
 			state = st_trans_state_row;
 			break;
 
 		case st_trans_state_row:
-
-			if (end - p >= 2) { /* pedantic step */
-				if (IS_ROW(p)) {
-					p += 2;	/* was _->; become ->_ */
-					state = st_trans_state_dst;
-					break;
-				}
-
-				esma_engine_log_err("%s()/%s - section 'trans':  invalid symbols '%c%c': need '->'\n",
-						__func__, et->name, *p, *(p + 1));
-				goto __fail;
+			if (IS_ROW(p)) {
+				p += 2;	/* was _->; become ->_ */
+				state = st_trans_state_dst;
+				break;
 			}
 
-			esma_engine_log_err("%s()/%s - section 'trans': need '->' after state name\n", __func__, et->name);
+			esma_engine_log_err("%s()/%s - section 'trans':  invalid symbols '%c%c': need '->'\n",
+					__func__, et->name, *p, *(p + 1));
 			goto __fail;
 
 		case st_trans_state_dst:
 
-			s = t = p;
+			s = p;
 
-			while (IS_VALID_STATE_CHAR(t)) {
-				t++;
+			while (IS_VALID_STATE_CHAR(s)) {
+				s++;
 			}
 
-			if (4 == t - s) { /* special state for moore machine */
-				if (str_4_cmp(s, 's','e','l','f')) {
+			if (4 == s - p) { /* special state for moore machine */
+				if (str_4_cmp(p, 's','e','l','f')) {
 					eti.est_dst = NULL;
-					p = t;
+					p = s;
 					state = st_trans_state_dst_colon;
 					break;
 				}
@@ -581,10 +534,10 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 				if (NULL == tmpl)
 					break;
 
-				if (strlen(tmpl->name) != t - s)
+				if (strlen(tmpl->name) != s - p)
 					 continue;
 
-				mismatch = strncmp(tmpl->name, s, t - s);
+				mismatch = strncmp(tmpl->name, p, s - p);
 				if (0 != mismatch)
 					 continue;
 
@@ -593,13 +546,13 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			}
 
 			if (NULL == eti.est_dst) {
-				*t = 0;
+				*s = 0;
 				esma_engine_log_err("%s()/%s - section 'trans': dst state '%s' not found\n",
-						__func__, et->name, s);
+						__func__, et->name, p);
 				goto __fail;
 			}
 
-			p = t;
+			p = s;
 			state = st_trans_state_dst_colon;
 			break;
 
@@ -616,7 +569,6 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 			break;
 
 		case st_trans_code:
-
 			s = p;
 
 			while (IS_VALID_FUNC_CHAR(s)) {
