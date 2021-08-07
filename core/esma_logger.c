@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "esma_time.h"
 #include "esma_logger.h"
 
 struct esma_log_info {
@@ -41,7 +42,7 @@ struct esma_log_info esma_log_info[] = {
 	},
 };
 
-u32 esma_log_level = ESMA_LOG_FTL;
+u32 esma_log_level = ESMA_LOG_INF;
 u32 esma_log_flags = 0;
 
 void esma_logger_set_log_level(u32 level)
@@ -71,12 +72,15 @@ void esma_console_log(int flags, int level, char *fmt, ...)
 
 	p = report_str;
 
-	sprintf(p, "%s", esma_log_info[level].color);
-	p += strlen(esma_log_info[level].color);
+	sprintf(p, "%s", esma_log_time);
+	p += esma_log_time_size;
+
+	sprintf(p, "%s ", esma_log_info[level].color);
+	p += strlen(esma_log_info[level].color) + 1;
 
 	sprintf(p, "%s", esma_log_info[level].error);
 	p += 5;	/* All msg - ect "DBG: " - has lenght equal 5 */
-	
+
 	p += vsnprintf(p, ESMA_MAX_REPORT_STR, fmt, args);
 	
 	sprintf(p, "%s", esma_log_info[ESMA_LOG_NRM].color);
