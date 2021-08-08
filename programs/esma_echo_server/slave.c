@@ -63,14 +63,18 @@ int slave_init_leave(__unbox__)
 
 int slave_fini_enter(__unbox__)
 {
+	struct slave_info *si = me->data;
+	esma_dbuf_free(&si->dbuf);
+	esma_free(si);
+
 	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
-	return 0;
+	return 1;
 }
 
 int slave_fini_leave(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
-	return 1;
+	return 0;
 }
 
 int slave_idle_enter(__unbox__)

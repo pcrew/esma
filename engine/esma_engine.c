@@ -183,6 +183,25 @@ void esma_engine_run_machine(struct esma *esma, void *dptr)
 	state->enter(esma, esma, dptr);
 }
 
+int esma_engine_restart_machine(struct esma *esma)
+{
+	struct state *states;
+	if (NULL == esma) {
+		esma_engine_log_dbg("%s() - esma is NULL.\n", __func__);
+		return 1;
+	}
+
+	states = esma->states.items;
+
+	if (esma->current_state != &states[__FINI__]) {
+		esma_engine_log_dbg("%s() - esma in work.\n", __func__);
+		return 1;
+	}
+
+	esma->current_state = &states[__INIT__];
+	return 0;
+}
+
 void esma_engine_del_machine(struct esma *esma)
 {
 	struct state *fini;

@@ -148,6 +148,7 @@ int esma_engine_dispatcher_send(struct esma_message *msg)
 	   u32      code = msg->code;
 
 	   int err;
+	   int ret;
 
 	if (NULL == src && NULL == dst) { /* message from os */
 		goto __read_os_msg;
@@ -236,13 +237,8 @@ __send_msg:
 	esma_dispatcher_log_dbg("Esma '%s' ACCEPTED message from '%s' with code %d; next state: %s\n",
 			dst->name, src->name, code, state->name);
 
-	err = state->enter(src, dst, ptr);
-	if (err) {
-		goto __fail;
-	}
-
-	/* only for fini state; need to optimize */
-	if (unlikely(!strcmp(state->name, "fini"))) {
+	ret = state->enter(src, dst, ptr);
+	if (ret) {
 		return state->leave(src, dst, ptr);
 	}
 

@@ -201,7 +201,7 @@ int master_init_leave(__unbox__)
 int master_fini_enter(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
-	return 0;
+	return 1;
 }
 
 int master_fini_leave(__unbox__)

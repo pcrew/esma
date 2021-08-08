@@ -62,6 +62,7 @@ struct esma {
 
 struct esma *esma_engine_new_machine(struct esma_template *et, char *name);
    int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl);
+   int esma_engone_restart_machine(struct esma *esma);
   void esma_engine_del_machine(struct esma *esma);
   void esma_engine_run_machine(struct esma *esma, void *dptr);
   void esma_engine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
