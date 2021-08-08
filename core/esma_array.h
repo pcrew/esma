@@ -40,4 +40,5 @@ struct esma_array *esma_array_new(u32 capacity, u32 item_size);
   void		  *esma_array_pop(struct esma_array *a);
   void		   esma_array_free(struct esma_array *a);
 
+  void		   esma_array_copy(struct esma_array *str, struct esma_array *dst);
 #endif

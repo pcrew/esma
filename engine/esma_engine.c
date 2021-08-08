@@ -183,6 +183,28 @@ void esma_engine_run_machine(struct esma *esma, void *dptr)
 	state->enter(esma, esma, dptr);
 }
 
+int esma_engine_copy_machine(struct esma *src, struct esma *dst, int (*copy_f)(const void *data_src, void *data_dst))
+{
+	if (NULL == src || NULL == dst) {
+		esma_engine_log_dbg("%s() - src or dst esma is NULL.\n", __func__);
+		return 1;
+	}
+
+	memcpy(src, dst, sizeof(struct esma));
+	esma_array_copy(&src->states, &dst->states);
+	for (int i = 0; i < dst->states.nitems; i++) {
+		struct state *state_src = esma_array_n(&src->states, i);
+		struct state *state_dst = esma_array_n(&dst->states, i);
+
+		esma_array_copy(&state_src->trans, &state_dst->trans);
+		esma_array_copy(&state_src->sign_trans, &state_dst->sign_trans);
+		esma_array_copy(&state_src->tick_trans, &state_dst->tick_trans);
+	}
+
+	copy_f(src->data, dst->data);
+	return 0;
+}
+
 int esma_engine_restart_machine(struct esma *esma)
 {
 	struct state *states;
@@ -204,18 +226,24 @@ int esma_engine_restart_machine(struct esma *esma)
 
 void esma_engine_del_machine(struct esma *esma)
 {
-	struct state *fini;
-
-	if (unlikely(NULL == esma))
+	struct state *states;
+	if (unlikely(NULL == esma)) {
+		esma_engine_log_dbg("%s() - esma is NULL.\n", __func__);
 		return;
+	}
 
-	fini = esma_array_n(&esma->states, __FINI__);
+	states = esma->states.items;
 
-	fini->enter(esma, esma, NULL);
+	if (esma->current_state != &states[__FINI__]) {
+		esma_engine_log_dbg("%s() - esma in work.\n", __func__);
+		return;
+	}
 
 	for (int i = 0; i < esma->states.nitems; i++) {
 		struct state *state = esma_array_n(&esma->states, i);
 		esma_array_free(&state->trans);
+		esma_array_free(&state->sign_trans);
+		esma_array_free(&state->tick_trans);
 	}
 	esma_array_free(&esma->states);
 }

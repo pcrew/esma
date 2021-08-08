@@ -106,8 +106,29 @@ void esma_array_free(struct esma_array *arr)
 	if (unlikely(NULL == arr))
 		return;
 
-	if (arr->capacity && arr->items)
+	if (arr->items)
 		esma_free(arr->items);
 
 	return;
+}
+
+void esma_array_copy(struct esma_array *src, struct esma_array *dst)
+{
+	int err;
+
+	if (NULL == src || NULL == dst) {
+		esma_core_log_dbg("%s() - src or dst is NULL.\n", __func__);
+		return;
+	}
+
+	esma_array_free(dst);
+
+	err = esma_array_init(dst, src->capacity, src->item_size);
+	if (err) {
+		esma_core_log_err("%s() - esma_array_init('%d', '%d') failed.\n",
+				__func__, src->capacity, src->item_size);
+		return;
+	}
+
+	memcpy(src->items, dst->items, src->item_size * src->nitems);
 }
