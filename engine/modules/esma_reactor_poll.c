@@ -72,13 +72,17 @@ static int poll_reactor__del(int fd, struct esma_channel *ch)
 	if (ch->index < 0)
 		return 1;
 
-	struct pollfd *del_event = esma_array_n(&event_list, ch->index);
-	struct esma_channel **del_channel = esma_array_n(&channels, ch->index);
+	struct pollfd *event = event_list.items;
+	struct esma_channel **channel = channels.items;
 
-	*del_event = *(struct pollfd *) esma_array_pop(&event_list);
-	*del_channel = *(struct esma_channel **) esma_array_pop(&channels);
-
+	event[ch->index] = event[event_list.nitems - 1];
+	channel[ch->index] = channel[channels.nitems - 1];
+	channel[ch->index]->index = ch->index;
 	ch->index = -1;
+
+	event[--event_list.nitems] = (struct pollfd) {0};
+	channel[--channels.nitems] = NULL;
+
 	return 0;
 }
 
