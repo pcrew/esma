@@ -156,7 +156,7 @@ void esma_template_print(struct esma_template *tmpl)
 	IS_VALID_STATE_CHAR(p)
 
 #define IS_ROW(p)	\
-	*p == '-' && *(p + 1) == '>'
+	(*p == '-' && *(p + 1) == '>')
 
 #define IS_NOT_ROW(p)	\
 	!(IS_ROW(p))
@@ -168,7 +168,16 @@ void esma_template_print(struct esma_template *tmpl)
 	str_4_cmp(p, 's','e','l','f')
 
 #define IS_DELIM(p) \
-        *p == ' ' || *p == '\t' || *p == '\n'
+        (*p == ' ' || *p == '\t' || *p == '\n')
+
+#define IS_SINGLE_LINE_COMMENT(p) \
+	(*p == '/' && *(p + 1) == '/')
+
+#define IS_MULTILINE_COMMENT_START(p) \
+	(*p == '/' && *(p + 1) == '*')
+
+#define IS_MULTILINE_COMMENT_END(p) \
+	(*p == '*' && *(p + 1) == '/')
 
 enum states {
 /* 0 */	st_start = 0,
@@ -293,19 +302,36 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 
 	_esma_template_internal_clean(&eti);
 
-	#define IS_NOT_END(p)	(p != end)
+	#define IS_END(p)	(p == end)
+	#define IS_NOT_END(p)	!(IS_END(p))
 	while (IS_NOT_END(p)) {
 
-		if ('/' == *p && '/' == *(p + 1)) {
-			while (*p != '\n')
-				p++;
-		}
-
-		if ('/' == *p && '*' == *(p + 1)) {
-			while (*p != '*' || *(p + 1) != '/') {
+		if (IS_SINGLE_LINE_COMMENT(p)) {
+			while (IS_NOT_LF(p) && IS_NOT_END(p)) {
 				p++;
 			}
-			p += 2;	/* skiping '*' and '/' */			
+
+			if (IS_END(p)) {
+				break;
+			}
+		}
+
+		if (IS_MULTILINE_COMMENT_START(p)) {
+			p++;
+			while (!IS_MULTILINE_COMMENT_END(p)) {
+				if (IS_END(p) || IS_MULTILINE_COMMENT_START(p)) {
+					esma_engine_log_err("%s()/%s - unterminated comment: /*\n",
+							__func__, et->name);
+					goto __fail;
+				}
+				p++;
+			}
+
+			if (end - p == 2) { // last comment
+				break;
+			}
+
+			p += 2;	/* skiping '*' and '/' */
 		}
 
 		if (IS_DELIM(p)) {
@@ -332,6 +358,12 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 					p += 5;
 					break;
 				}
+			}
+
+			if (IS_NOT_DELIM(p)) {
+				esma_engine_log_err("%s()/%s - invalid symbol '%c' \n",
+						__func__, et->name, *p);
+				goto __fail;
 			}
 
 			p++;
@@ -490,7 +522,7 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 
 			if (NULL == eti.est_src) {
 				*s = 0;
-				esma_engine_log_err("%s()/%s - section 'trans': src state '%s' not found\n", __func__, et->name, s);
+				esma_engine_log_err("%s()/%s - section 'trans': src state '%s' not found\n", __func__, et->name, p);
 				goto __fail;
 			}
 
@@ -526,6 +558,12 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 				}
 			}
 
+			if (p == s) {
+				esma_engine_log_err("%s()/%s - section 'trans': after '%s ->' must be state name\n",
+						__func__, et->name, eti.est_src->name);
+				goto __fail;
+			}
+
 			for (int i = 0; i < et->nstates; i++) {
 				   int mismatch;
 				struct esma_state_template *tmpl;
@@ -538,7 +576,7 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 					 continue;
 
 				mismatch = strncmp(tmpl->name, p, s - p);
-				if (0 != mismatch)
+				if (mismatch)
 					 continue;
 
 				eti.est_dst = tmpl;
