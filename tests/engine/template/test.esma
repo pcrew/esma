@@ -1,4 +1,3 @@
-
 //	single line comment
 states {
 	idle;
@@ -50,7 +49,9 @@ trans {
 	 *	Multiline
 	 *	Comment
 	 */
-
-
-
 };
+
+/*	*/
+// single line comment
+/*	*/	/*	*/	//
+// single line comment
