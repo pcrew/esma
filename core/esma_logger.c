@@ -36,6 +36,10 @@ struct esma_log_info esma_log_info[] = {
 		.color = "\x1B[31m",	/* red		*/
 		.error = "FTL: ",
 	},
+	[ESMA_LOG_BUG] = {
+		.color = "\x1B[36m",	/* cyan		*/
+		.error = "FTL: ",
+	},
 	[ESMA_LOG_NRM] = {
 		.color = "\x1B[0m",	/* normal color	*/
 		.error = "NRM: ",

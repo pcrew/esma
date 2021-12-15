@@ -8,7 +8,7 @@
 #include "core/esma_logger.h"
 #include "core/esma_objpool.h"
 
-#include "engine/esma_engine.h"
+#include "engine/esma.h"
 
 #include "common/numeric_types.h"
 
@@ -93,7 +93,7 @@ static int __master_init_socket(struct esma *master, u16 port)
 	}
 
 	esma_engine_init_io_channel(master, mi->socket.fd);
-	esma_engine_mod_io_channel(master, ESMA_POLLIN, IO_EVENT_ENABLE);
+	esma_engine_mod_io_channel(master, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
 	master->io_channel.flags |= ESMA_LISTENING_CHANNEL;
 	return 0;
 
@@ -116,7 +116,7 @@ static int __master_init_slaves(struct esma *master)
 	if (err)
 		goto __fail;
 
-	#define NSLAVES 8
+	#define NSLAVES 256
 	err = esma_objpool_init(&mi->slaves, NSLAVES, 0, 0);
 	if (err) {
 		esma_user_log_err("%s()/%s - esma_objpool_init('slaves'): failed\n", __func__, master->name);

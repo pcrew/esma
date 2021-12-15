@@ -4,14 +4,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
+#include "esma.h"
 #include "core/esma_logger.h"
-
-#include "esma_reactor.h"
-
-#include "esma_engine.h"
-#include "esma_engine_info.h"
-#include "esma_engine_dispatcher.h"
-
 #include "common/compiler.h"
 #include "common/macro_magic.h"
 
@@ -59,9 +53,14 @@ static int _read_data(struct esma_channel *ch)
 	return 0;
 }
 
+static int _read_fallback(struct esma_channel *ch)
+{
+	return 0;
+}
+
 static int (*_read_ch_data[])(struct esma_channel *ch) = {
-	[ESMA_CH_EMPTY] = NULL,
-	[ESMA_CH_NONE] = NULL,
+	[ESMA_CH_EMPTY] = _read_fallback,
+	[ESMA_CH_NONE] = _read_fallback,
 	[ESMA_CH_TICK] = _read_tick,
 	[ESMA_CH_SIGN] = _read_sign,
 	[ESMA_CH_DATA] = _read_data,
@@ -115,9 +114,9 @@ static int __stop_channels(struct state *state)
 
 		err = esma_engine_disarm_tick_channel(ch);
 		if (err) {
-			esma_dispatcher_log_ftl("%s()/%s - failed to mod tick channel; fd: '%d'\n",
+			esma_dispatcher_log_bug("%s()/%s - failed to mod tick channel; fd: '%d'\n",
 					__func__, ch->owner->name, i);
-			exit(1);
+			return 1;
 		}
 	}
 
@@ -127,9 +126,9 @@ static int __stop_channels(struct state *state)
 
 		err = esma_engine_mod_channel(ch, 0);
 		if (err) {
-			esma_dispatcher_log_ftl("%s()/%s - failed to mod sign channel; fd: '%d'\n",
+			esma_dispatcher_log_bug("%s()/%s - failed to mod sign channel; fd: '%d'\n",
 					__func__, ch->owner->name, i);
-			exit(1);
+			return 1;
 		}
 	}
 
@@ -148,7 +147,6 @@ int esma_engine_dispatcher_send(struct esma_message *msg)
 	   u32      code = msg->code;
 
 	   int err;
-	   int ret;
 
 	if (NULL == src && NULL == dst) { /* message from os */
 		goto __read_os_msg;
@@ -156,13 +154,13 @@ int esma_engine_dispatcher_send(struct esma_message *msg)
 
 	state = dst->current_state;
 	if (unlikely(NULL == state)) {
-		esma_dispatcher_log_ftl("%s()/%s - current state is NULL\n", __func__, dst->name);
+		esma_dispatcher_log_bug("%s()/%s - current state is NULL\n", __func__, dst->name);
 		goto __fail;
 	}
 
 	trans = esma_array_n(&state->trans, code);
 	if (NULL == trans) {
-		esma_dispatcher_log_ftl("%s()/%s - trans[%d] is NULL\n", __func__, dst->name, code);
+		esma_dispatcher_log_bug("%s()/%s - trans[%d] is NULL\n", __func__, dst->name, code);
 		goto __fail;
 	}
 
@@ -195,14 +193,14 @@ __read_os_msg:
 			break;
 
 		default:
-			esma_dispatcher_log_ftl("%s()/%s - invalid IO channel\n", __func__, dst->name);
+			esma_dispatcher_log_bug("%s()/%s - invalid IO channel\n", __func__, dst->name);
 			goto __fail;
 		}
 	}
 
 	err = _read_ch_data[ch->type](ch);
 	if (err) {
-		esma_dispatcher_log_ftl("%s()/%s - can't read channel data\n", __func__, dst->name);
+		esma_dispatcher_log_bug("%s()/%s - can't read channel data\n", __func__, dst->name);
 		goto __fail;
 	}
 
@@ -237,8 +235,8 @@ __send_msg:
 	esma_dispatcher_log_dbg("Esma '%s' ACCEPTED message from '%s' with code %d; next state: %s\n",
 			dst->name, src->name, code, state->name);
 
-	ret = state->enter(src, dst, ptr);
-	if (ret) {
+	err = state->enter(src, dst, ptr);
+	if (err) {
 		return state->leave(src, dst, ptr);
 	}
 

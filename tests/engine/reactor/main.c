@@ -5,10 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "engine/esma_channel.h"
-#include "engine/esma_reactor.h"
-#include "engine/esma_engine_info.h"
-#include "engine/esma_engine_common.h"
+#include "engine/esma.h"
 #include "common/api.h"
 
 struct esma_engine_info ei = {0};

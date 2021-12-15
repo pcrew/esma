@@ -5,8 +5,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "engine/esma.h"
 #include "core/esma_logger.h"
-#include "engine/esma_template.h"
 
 int main()
 {

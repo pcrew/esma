@@ -10,12 +10,7 @@
 #include "core/esma_mempool.h"
 #include "core/esma_ring_buffer.h"
 
-#include "../esma_channel.h"
-#include "../esma_message.h"
-#include "../esma_reactor.h"
-
-#include "../esma_engine_info.h"
-#include "../esma_engine_common.h"
+#include "engine/esma.h"
 
 static struct esma_engine_info *ei = NULL;
 static int epollfd = -1;

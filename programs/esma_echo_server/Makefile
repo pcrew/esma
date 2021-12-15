@@ -3,7 +3,7 @@
 
 SOURCES = main.c master.c slave.c
 OBJECTS = $(SOURCES:.c=.o)
-PROGRAM = test
+PROGRAM = esma_echo_server
 LDFLAGS = -ldl
 
 all: $(PROGRAM)

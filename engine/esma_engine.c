@@ -15,14 +15,9 @@
 
 #include "common/compiler.h"
 
-#include "esma_load.h"
-#include "esma_engine.h"
-#include "esma_message.h"
-#include "esma_reactor.h"
-#include "esma_engine_fd.h"
-#include "esma_engine_info.h"
-#include "esma_engine_common.h"
-#include "esma_engine_dispatcher.h"
+#include "esma.h"
+
+extern int errno;
 
 static struct reactor *reactor;
 static struct esma_engine_info engine_info;
@@ -42,7 +37,7 @@ static int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 
 	fd = esma_engine_new_timerfd();
 	if (unlikely(-1 == fd)) {
-		esma_engine_log_err("%s()/%s - reactor->new_timerfd(): failed\n", __func__, esma->name);
+		esma_engine_log_err("%s()/%s - reactor->new_timerfd(): failed('%s')\n", __func__, esma->name, strerror(errno));
 		return 1;
 	}
 
@@ -63,7 +58,7 @@ static int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
 
 	fd = esma_engine_new_signalfd(ch->raw_data);
 	if (unlikely(-1 == fd)) {
-		esma_engine_log_err("%s()/%s - reactor->new_sig(): failed\n", __func__, esma->name);
+		esma_engine_log_err("%s()/%s - reactor->new_sig(): failed('%s')\n", __func__, esma->name, strerror(errno));
 		return 1;
 	}
 
@@ -86,7 +81,7 @@ static int _esma_register_channels(struct esma *esma)
 			trans = esma_array_n(&state->tick_trans, j);
 			err = _esma_set_tick_trans(trans, esma);
 			if (err) {
-				esma_engine_log_err("%s()/%s - can't set tick trans for '%s state[%d trans]",
+				esma_engine_log_ftl("%s()/%s - can't set tick trans for '%s state[%d trans]",
 						__func__, esma->name, state->name, j);
 				goto __fail;
 			}
@@ -96,7 +91,7 @@ static int _esma_register_channels(struct esma *esma)
 			trans = esma_array_n(&state->sign_trans, j);
 			err = _esma_set_sign_trans(trans, esma);
 			if (err) {
-				esma_engine_log_err("%s()/%s - can't set sign trans for '%s state[%d trans]",
+				esma_engine_log_ftl("%s()/%s - can't set sign trans for '%s state[%d trans]",
 						__func__, esma->name, state->name, j);
 				goto __fail;
 			}
@@ -115,7 +110,7 @@ int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template
 
 	err = esma_load(esma, tmpl);
 	if (err) {
-		esma_engine_log_ftl("%s() - emsa_load('%s'): failed\n", __func__, tmpl->name);
+		esma_engine_log_ftl("%s() - emsa_load('%s'): failed('%s')\n", __func__, tmpl->name, strerror(errno));
 		return 1;
 	}
 
@@ -129,7 +124,7 @@ int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template
 
 	err = _esma_register_channels(esma);
 	if (err) {
-		esma_engine_log_ftl("%s() - can't register channel\n", __func__, esma->name);
+		esma_engine_log_ftl("%s() - can't register channel\n", __func__, esma->name, strerror(errno));
 		return 1;
 	}
 
@@ -142,19 +137,19 @@ struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name)
 	   int err;
 
 	if (unlikely(NULL == tmpl)) {
-		esma_engine_log_ftl("%s() - tmpl is NULL\n", __func__);
+		esma_engine_log_err("%s() - tmpl is NULL\n", __func__);
 		return NULL;
 	}
 
 	esma = esma_malloc(sizeof(struct esma));
 	if (unlikely(NULL == esma)) {
-		esma_engine_log_ftl("%s() - can't allocate memory for new machine\n", __func__);
+		esma_engine_log_err("%s() - can't allocate memory for new machine\n", __func__);
 		return NULL;
 	}
 
 	err = esma_engine_init_machine(esma, name, tmpl);
 	if (err) {
-		esma_engine_log_ftl("%s()/%s - can't init machine\n", __func__, tmpl->name);
+		esma_engine_log_err("%s()/%s - can't init machine\n", __func__, tmpl->name);
 		esma_engine_del_machine(esma);
 		esma_free(esma);
 		return NULL;
@@ -163,24 +158,24 @@ struct esma *esma_engine_new_machine(struct esma_template *tmpl, char *name)
 	return esma;
 }
 
-void esma_engine_run_machine(struct esma *esma, void *dptr)
+int esma_engine_run_machine(struct esma *esma, void *dptr)
 {
 	struct state *state;
 
 	if (unlikely(NULL == esma)) {
-		esma_engine_log_ftl("%s() - esma is NULL\n", __func__);
-		exit(1);
+		esma_engine_log_err("%s() - esma is NULL\n", __func__);
+		return 1;
 	}
 
 	state = esma_array_n(&esma->states, __INIT__);
 	if (unlikely(NULL == state)) {
-		esma_engine_log_ftl("%s()/%s - init state is NULL\n", __func__, esma->name);
-		exit(1);
+		esma_engine_log_err("%s()/%s - init state is NULL\n", __func__, esma->name);
+		return 1;
 	}
 
 	esma->current_state = state;
 
-	state->enter(esma, esma, dptr);
+	return state->enter(esma, esma, dptr);
 }
 
 int esma_engine_copy_machine(struct esma *src, struct esma *dst, int (*copy_f)(const void *data_src, void *data_dst))
@@ -224,19 +219,19 @@ int esma_engine_restart_machine(struct esma *esma)
 	return 0;
 }
 
-void esma_engine_del_machine(struct esma *esma)
+int esma_engine_del_machine(struct esma *esma)
 {
 	struct state *states;
 	if (unlikely(NULL == esma)) {
-		esma_engine_log_dbg("%s() - esma is NULL.\n", __func__);
-		return;
+		esma_engine_log_err("%s() - esma is NULL.\n", __func__);
+		return 1;
 	}
 
 	states = esma->states.items;
 
 	if (esma->current_state != &states[__FINI__]) {
 		esma_engine_log_dbg("%s() - esma in work.\n", __func__);
-		return;
+		return 1;
 	}
 
 	for (int i = 0; i < esma->states.nitems; i++) {
@@ -246,6 +241,7 @@ void esma_engine_del_machine(struct esma *esma)
 		esma_array_free(&state->tick_trans);
 	}
 	esma_array_free(&esma->states);
+	return 0;
 }
 
 void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
@@ -254,7 +250,7 @@ void esma_engine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 cod
 
 	msg = esma_ring_buffer_put(&engine_info.msg_queue);
 	if (NULL == msg) {
-		esma_engine_log_ftl("%s() - can't send message from '%s' to '%s'\n",
+		esma_engine_log_err("%s() - can't send message from '%s' to '%s'\n",
 				__func__, src->name, dst->name);
 		exit(1);
 	}
@@ -323,22 +319,24 @@ void esma_engine_wait(void)
 	reactor->wait();
 }
 
-void esma_engine_init_io_channel(struct esma *esma, int fd)
+int esma_engine_init_io_channel(struct esma *esma, int fd)
 {
 	int err;
 
 	if (NULL == esma) {
 		esma_engine_log_ftl("%s() - esma is NULL\n", __func__);
-		exit(1);
+		return 1;
 	}
 
 	if (unlikely(fd < 0)) {
 		esma_engine_log_ftl("%s()/%s - invalid fd: %d\n", __func__, esma->name, fd);
-		exit(1);
+		return 1;
 	}
 
-	if (ESMA_CH_NONE != esma->io_channel.type)
-		return;
+	if (ESMA_CH_NONE != esma->io_channel.type) {
+		esma_engine_log_dbg("%s()/%s - esma hasn't io channel\n", __func__, esma->name);
+		return 0;
+	}
 
 	memset(&esma->io_channel, 0, sizeof(struct esma_channel));
 	esma->io_channel.type = ESMA_CH_DATA;
@@ -350,64 +348,66 @@ void esma_engine_init_io_channel(struct esma *esma, int fd)
 	if (err) {
 		esma_engine_log_ftl("%s()/%s - can't add fd '%d' to reactor\n",
 				__func__, esma->name, fd);
-		exit(1);
+		return 1;
 	}
+
+	return 0;
 }
 
-void esma_engine_free_io_channel(struct esma *esma)
+int esma_engine_free_io_channel(struct esma *esma)
 {
-	if (NULL == esma)
-		exit(1);
+	if (unlikely(NULL == esma)) {
+		esma_engine_log_dbg("%s() - esma is NULL.\n", __func__);
+		return 0;
+	}
 
-	if (esma->io_channel.fd > 0)
+	if (esma->io_channel.fd > 0) {
 		reactor->del(esma->io_channel.fd, &esma->io_channel);
+	}
 
 	memset(&esma->io_channel, 0, sizeof(struct esma_channel));
 	esma->io_channel.type = ESMA_CH_NONE;
+	return 0;
 }
 
-void esma_engine_mod_io_channel(struct esma *esma, u32 events, int action)
+int esma_engine_mod_io_channel(struct esma *esma, u32 events, int action)
 {
 	int err;
 
 	if (unlikely(NULL == esma)) {
-		esma_engine_log_ftl("%s() - esma is NULL\n", __func__);
-		exit(1);
+		esma_engine_log_dbg("%s() - esma is NULL\n", __func__);
+		return 0;
 	}
 
 	if (unlikely(ESMA_CH_NONE == esma->io_channel.type)) {
-		esma_engine_log_ftl("%s()/%s - hasen't io channel\n", __func__, esma->name);
-		exit(1);
+		esma_engine_log_dbg("%s()/%s - hasn't io channel\n", __func__, esma->name);
+		return 0;
 	}
 
 	switch (action) {
-	case IO_EVENT_ENABLE:
-
+	case ESMA_IO_EVENT_ENABLE:
 		err = reactor->mod(esma->io_channel.fd, &esma->io_channel, events);
 		if (err) {
 			esma_engine_log_ftl("%s()/%s - can't enable io channel\n",
 					__func__, esma->name);
-			exit(1);
+			return 1;
 		}
-
 		break;
 
-	case IO_EVENT_DISABLE:
-
+	case ESMA_IO_EVENT_DISABLE:
 		err = reactor->mod(esma->io_channel.fd, &esma->io_channel, 0);
 		if (err) {
 			esma_engine_log_ftl("%s()/%s - can't disable io channel\n",
 					__func__, esma->name);
-			exit(1);
+			return 1;
 		}
-
 		break;
 
 	default:
-
-		esma_engine_log_ftl("%s()/%s - invalid action\n", __func__, esma->name);
-		exit(1);
+		esma_engine_log_dbg("%s()/%s - invalid action\n", __func__, esma->name);
 	}
+
+	return 0;
 }
 
 int esma_engine_mod_channel(struct esma_channel *ch, u32 events)

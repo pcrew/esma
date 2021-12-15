@@ -6,12 +6,9 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-#include "esma_channel.h"
-#include "esma_template.h"
-
+#include "esma.h"
 #include "core/esma_alloc.h"
 #include "core/esma_logger.h"
-
 #include "common/compiler.h"
 #include "common/parser_helper.h"
 

@@ -17,7 +17,8 @@
 
 #define ESMA_LISTENING_CHANNEL		0x01
 
-struct esma;
+#define ESMA_IO_EVENT_ENABLE         0
+#define ESMA_IO_EVENT_DISABLE        1
 
 struct tick_channel_info {
 	u64 interval_msec;

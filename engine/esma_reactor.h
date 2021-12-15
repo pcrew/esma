@@ -2,7 +2,7 @@
 #ifndef ESMA_REACTOR_H
 #define ESMA_REACTOR_H
 
-#include "esma_channel.h"
+#include "esma.h"
 
 #include "common/numeric_types.h"
 #include "common/api.h"

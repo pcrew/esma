@@ -10,7 +10,7 @@
 #include "core/esma_logger.h"
 #include "core/esma_objpool.h"
 
-#include "engine/esma_engine.h"
+#include "engine/esma.h"
 
 #include "common/numeric_types.h"
 
@@ -124,7 +124,7 @@ int slave_recv_enter(__unbox__)
 
 	esma_dbuf_clear(dbuf);
 
-	esma_engine_mod_io_channel(me, ESMA_POLLIN, IO_EVENT_ENABLE);
+	esma_engine_mod_io_channel(me, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
 	esma_user_log_nrm("%s()/%s - start receiving from fd '%d'\n", __func__, me->name, me->io_channel.fd);
 	return 0;
 }
@@ -201,7 +201,7 @@ int slave_recv_leave(__unbox__)
 int slave_send_enter(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - start sending\n", __func__, me->name);
-	esma_engine_mod_io_channel(me, ESMA_POLLOUT, IO_EVENT_ENABLE);
+	esma_engine_mod_io_channel(me, ESMA_POLLOUT, ESMA_IO_EVENT_ENABLE);
 	return 0;
 }
 
@@ -228,7 +228,7 @@ int slave_send_data_0(__unbox__)
 	}
 
 	if (n == dbuf->cnt) {
-		esma_engine_mod_io_channel(me, 0, IO_EVENT_DISABLE);
+		esma_engine_mod_io_channel(me, 0, ESMA_IO_EVENT_DISABLE);
 		esma_engine_send_msg(me, me, NULL, 0);
 		return 0;
 	}

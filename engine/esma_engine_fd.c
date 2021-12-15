@@ -1,12 +1,13 @@
 
+#include <errno.h>
 #include <signal.h>
 #include <sys/timerfd.h>
 #include <sys/signalfd.h>
 
-#include "esma_channel.h"
-#include "esma_engine_fd.h"
-
+#include "esma.h"
 #include "core/esma_logger.h"
+
+extern int errno;
 
 int esma_engine_new_signalfd(int signo)
 {
@@ -19,7 +20,7 @@ int esma_engine_new_signalfd(int signo)
 
 	fd = signalfd(-1, &mask, SFD_CLOEXEC);
 	if (-1 == fd) {
-		esma_engine_log_err("%s() - signalfd(SFD_CLOEXEC): failed\n", __func__);
+		esma_engine_log_sys("%s() - signalfd(SFD_CLOEXEC): failed('%s')\n", __func__, strerror(errno));
 		return -1;
 	}
 
@@ -31,9 +32,9 @@ int esma_engine_new_timerfd(void)
 	int fd = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC);
 	
 	if (-1 == fd) {
-	esma_engine_log_err("%s() - timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC): failed\n",
-			__func__);
-	return -1;
+		esma_engine_log_sys("%s() - timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC): failed('%s')\n",
+			__func__, strerror(errno));
+		return -1;
 	}
 
 	return fd;
@@ -54,8 +55,8 @@ int esma_engine_arm_timerfd(int fd, u64 interval_msec, int type)
 
 	ret = timerfd_settime(fd, 0, &ts, NULL);
 	if (-1 == ret) {
-		esma_engine_log_err("%s() - timerfd_settime(%d, %d msec): failed\n",
-				__func__, fd, interval_msec);
+		esma_engine_log_sys("%s() - timerfd_settime(%d, %d msec): failed('%s')\n",
+				__func__, fd, interval_msec, strerror(errno));
 	}
 
 	return ret;
@@ -68,7 +69,7 @@ int esma_engine_disarm_timerfd(int fd)
 
 	ret = timerfd_settime(fd, 0, &itspec, NULL);
 	if (-1 == ret) {
-		esma_engine_log_err("%s() - timerfd_settime(%d, 0): failed\n", __func__, fd);
+		esma_engine_log_sys("%s() - timerfd_settime(%d, 0): failed('%s')\n", __func__, fd, strerror(errno));
 	}
 
 	return ret;

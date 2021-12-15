@@ -10,7 +10,8 @@
 #define ESMA_LOG_SYS	3
 #define ESMA_LOG_INF	4
 #define ESMA_LOG_FTL	5
-#define ESMA_LOG_NRM	6
+#define ESMA_LOG_BUG	6
+#define ESMA_LOG_NRM	7
 
 #define ESMA_LOG_USER		0x01
 #define ESMA_LOG_CORE		0x02
@@ -34,6 +35,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_user_log_sys(fmt, ...)		esma_console_log(ESMA_LOG_USER, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_user_log_inf(fmt, ...)		esma_console_log(ESMA_LOG_USER, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_user_log_ftl(fmt, ...)		esma_console_log(ESMA_LOG_USER, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_user_log_bug(fmt, ...)		esma_console_log(ESMA_LOG_USER, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 #define esma_core_log_nrm(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_NRM, fmt, __VA_ARGS__)
 #define esma_core_log_dbg(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_DBG, fmt, __VA_ARGS__)
@@ -42,6 +44,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_core_log_sys(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_core_log_inf(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_core_log_ftl(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_core_log_bug(fmt, ...)		esma_console_log(ESMA_LOG_CORE, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 #define esma_plugin_log_nrm(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_NRM, fmt, __VA_ARGS__)
 #define esma_plugin_log_dbg(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_DBG, fmt, __VA_ARGS__)
@@ -50,6 +53,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_plugin_log_sys(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_plugin_log_inf(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_plugin_log_ftl(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_plugin_log_bug(fmt, ...)		esma_console_log(ESMA_LOG_PLUGIN, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 #define esma_engine_log_nrm(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_NRM, fmt, __VA_ARGS__)
 #define esma_engine_log_dbg(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_DBG, fmt, __VA_ARGS__)
@@ -58,6 +62,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_engine_log_sys(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_engine_log_inf(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_engine_log_ftl(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_engine_log_bug(fmt, ...)		esma_console_log(ESMA_LOG_ENGINE, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 #define esma_reactor_log_nrm(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_NRM, fmt, __VA_ARGS__)
 #define esma_reactor_log_dbg(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_DBG, fmt, __VA_ARGS__)
@@ -66,6 +71,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_reactor_log_sys(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_reactor_log_inf(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_reactor_log_ftl(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_reactor_log_bug(fmt, ...)		esma_console_log(ESMA_LOG_REACTOR, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 #define esma_dispatcher_log_nrm(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_NRM, fmt, __VA_ARGS__)
 #define esma_dispatcher_log_dbg(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_DBG, fmt, __VA_ARGS__)
@@ -74,6 +80,7 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_dispatcher_log_sys(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_SYS, fmt, __VA_ARGS__)
 #define esma_dispatcher_log_inf(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_INF, fmt, __VA_ARGS__)
 #define esma_dispatcher_log_ftl(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_FTL, fmt, __VA_ARGS__)
+#define esma_dispatcher_log_bug(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
 void esma_console_log(int flags, int level, char *fmt, ...);
 

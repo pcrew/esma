@@ -5,11 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "esma_engine_common.h" /* for __INIT__ and __FINI__ */
-
+#include "esma.h"
 #include "core/esma_dbuf.h"
 #include "core/esma_array.h"
-
 #include "common/numeric_types.h"
 
 struct esma_state_template;

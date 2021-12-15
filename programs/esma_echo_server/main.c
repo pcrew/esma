@@ -12,7 +12,7 @@
 
 #include "common/api.h"
 
-#include "engine/esma_engine.h"
+#include "engine/esma.h"
 
 char *master_tmpl =
         "	states {                                                "

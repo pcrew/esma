@@ -1,5 +1,5 @@
 
-#include "esma_load.h"
+#include "esma.h"
 
 #include "core/esma_array.h"
 #include "core/esma_alloc.h"
@@ -114,26 +114,22 @@ static int _esma_prepare_trans(struct esma *esma, struct esma_template *tmpl)
 
 			switch (trans_tmpl->ch_type) {
 			case ESMA_CH_NONE:
-
 				trans = esma_array_n(&state->trans, code);
 				sprintf(name, "%s_%s_%d", esma->name, state->name, code);
 				break;
 
 			case ESMA_CH_TICK:
-
 				trans = esma_array_push(&state->tick_trans);
 				trans->ch.info.tick.periodic = trans_tmpl->ch_periodic;
 				sprintf(name, "%s_%s_tick_%d", esma->name, state->name, code);
 				break;
 
 			case ESMA_CH_SIGN:
-
 				trans = esma_array_push(&state->sign_trans);
 				sprintf(name, "%s_%s_sign_%d", esma->name, state->name, code);
 				break;
 
 			case ESMA_CH_DATA:
-
 				switch (trans_tmpl->ch_data) {
 				case ESMA_POLLIN:
 					trans = &state->data_pollin;

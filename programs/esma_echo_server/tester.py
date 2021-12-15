@@ -48,6 +48,7 @@ def client_func(name):
                 ret = sock.recv(len(dg))
                 if ret != dg.encode():
                     print("mismatch: send {}; recv {}.".format(dg.encode(), recv))
+                    sys.exit(1)
 
             sock.close()
 
