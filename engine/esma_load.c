@@ -46,8 +46,7 @@ static int _esma_prepare_states(struct esma *esma, struct esma_template *tmpl)
 		sprintf(name, "%s_%s_leave", esma->name, state_tmpl->name);
 		state->leave = load_tool(NULL, name);
 		if (NULL == state->leave) {
-			esma_engine_log_err("%s()/%s - can't find '%s' function\n", __func__, tmpl->name, name);
-			goto __fail;
+			esma_engine_log_inf("%s()/%s - can't find '%s' function\n", __func__, tmpl->name, name);
 		}
 
 		ntrans = max(state_tmpl->max_code, state_tmpl->ntrans);

@@ -6,9 +6,6 @@
 #include "common/numeric_types.h"
 #include "common/api.h"
 
-#define IO_EVENT_ENABLE		0
-#define IO_EVENT_DISABLE	1
-
 struct esma *esma_engine_new_machine(struct esma_template *et, char *name);
    int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl);
    int esma_engine_del_machine(struct esma *esma);

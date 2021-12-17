@@ -4,9 +4,9 @@
 
 #include "common/numeric_types.h"
 
-void *esma_malloc(u32 size);
-void *esma_calloc(u32 items, u32 item_size);
-void *esma_realloc(void *prev, u32 size);
-void *esma_memalign(u32 alignment, u32 size);
+void *esma_malloc(size_t size);
+void *esma_calloc(size_t items, size_t item_size);
+void *esma_realloc(void *prev, size_t size);
+void *esma_memalign(size_t alignment, size_t size);
 void  esma_free(void *data);
 #endif

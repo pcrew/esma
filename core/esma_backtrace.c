@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include <execinfo.h>
 
 #include "esma_alloc.h"
@@ -9,6 +10,8 @@
 #include "esma_backtrace.h"
 
 #include "common/numeric_types.h"
+
+extern int errno;
 
 static u32 esma_backtrace_depth;
 void *esma_backtrace_buff = NULL;
@@ -21,7 +24,7 @@ static void _esma_backtrace_print_stack(void)
 	n = backtrace(esma_backtrace_buff, esma_backtrace_depth);
 	strings = backtrace_symbols(esma_backtrace_buff, n);
 	if (NULL == strings) {
-		esma_core_log_sys("%s() - backtrace_symbols(): failed.\n", __func__);
+		esma_core_log_sys("%s() - backtrace_symbols() failed: %s\n", __func__, strerror(errno));
 		exit(1);
 	}
 
@@ -61,19 +64,19 @@ int esma_backtrace_init(u32 depth)
 
 	err = sigaction(SIGSEGV, &sa, NULL);
 	if (err) {
-		esma_core_log_sys("%s() - sigaction('SIGSEGV'): failed.\n", __func__);
+		esma_core_log_sys("%s() - sigaction('SIGSEGV') failed: %s\n", __func__, strerror(errno));
 		return 1;
 	}
 
 	err = sigaction(SIGBUS, &sa, NULL);
 	if (err) {
-		esma_core_log_sys("%s() - sigaction('SIGBUS'): failed.\n", __func__);
+		esma_core_log_sys("%s() - sigaction('SIGBUS') failed: %s\n", __func__, strerror(errno));
 		return 1;
 	}
 
 	err = sigaction(SIGILL, &sa, NULL);
 	if (err) {
-		esma_core_log_sys("%s() - sigaction('SIGILL'): failed.\n", __func__);
+		esma_core_log_sys("%s() - sigaction('SIGILL') failed: %s\n", __func__, strerror(errno));
 		return 1;
 	}
 

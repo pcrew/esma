@@ -66,4 +66,22 @@ static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
 	return ch->info.data.bytes_avail;
 }
 
+static inline char *esma_channel_type_to_str(u32 ch_type)
+{
+	switch (ch_type) {
+	case ESMA_CH_EMPTY:
+		return "ESMA_CH_EMPTY";
+	case ESMA_CH_NONE:
+		return "ESMA_CH_NONE";
+	case ESMA_CH_TICK:
+		return "ESMA_CH_TICK";
+	case ESMA_CH_DATA:
+		return "ESMA_CH_DATA";
+	case ESMA_CH_SIGN:
+		return "ESMA_CH_SIGN";
+	default:
+		return "invalid ch_type";
+	}
+}
+
 #endif

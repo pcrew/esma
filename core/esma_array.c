@@ -14,7 +14,7 @@ int esma_array_init(struct esma_array *arr, u32 capacity, u32 item_size)
 	void *items;
 
 	items = esma_calloc(capacity, item_size);
-	if (NULL == items) {
+	if (unlikely(NULL == items)) {
 		esma_core_log_err("%s() - esma_calloc(%ld, %ld): failed\n", __func__, capacity, item_size);
 		return 1;
 	}
@@ -79,10 +79,10 @@ void *esma_array_push(struct esma_array *arr)
 		goto __push;
 
 	err = _esma_array_expand(arr);
-	if (err)
+	if (unlikely(err)) {
+		esma_core_log_err("%s() - can't expand memory\n", __func__);
 		return NULL;
-
-	goto __push;
+	}
 
 __push:
 	item = arr->items + arr->nitems * arr->item_size;
@@ -92,10 +92,7 @@ __push:
 
 void *esma_array_pop(struct esma_array *arr)
 {
-	  if (unlikely(NULL == arr))
-		  return NULL;
-
-	  if (0 == arr->nitems)
+	  if (unlikely(NULL == arr || 0 == arr->nitems))
 		  return NULL;
 
 	  return arr->items + (--arr->nitems) * arr->item_size;
@@ -124,7 +121,7 @@ void esma_array_copy(struct esma_array *src, struct esma_array *dst)
 	esma_array_free(dst);
 
 	err = esma_array_init(dst, src->capacity, src->item_size);
-	if (err) {
+	if (unlikely(err)) {
 		esma_core_log_err("%s() - esma_array_init('%d', '%d') failed.\n",
 				__func__, src->capacity, src->item_size);
 		return;

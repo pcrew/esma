@@ -1,6 +1,6 @@
 
+#include <errno.h>
 #include <unistd.h>
-
 #include <sys/epoll.h>
 
 #include "common/compiler.h"
@@ -12,9 +12,10 @@
 
 #include "engine/esma.h"
 
+extern int errno;
+
 static struct esma_engine_info *ei = NULL;
 static int epollfd = -1;
-
 
 static void epoll_reactor__init(u32 nevent, void *tools)
 {
@@ -27,7 +28,7 @@ static void epoll_reactor__init(u32 nevent, void *tools)
 
 	epollfd = epoll_create(nevent);
 	if (-1 == epollfd) {
-		esma_reactor_log_err("%s() - epoll_create('%d'): failed\n", __func__, nevent);
+		esma_reactor_log_sys("%s() - epoll_create(nevent: '%d') failed: %s\n", __func__, nevent, strerror(errno));
 		exit(1);
 	}
 }
@@ -37,7 +38,7 @@ static void epoll_reactor__fini(void)
 	int err = close(epollfd);
 
 	if (-1 == err) {
-		esma_reactor_log_err("%s() - close('epollfd'): failed\n", __func__);
+		esma_reactor_log_sys("%s() - close('epollfd') failed: %s\n", __func__, strerror(errno));
 		exit(1);
 	}
 }
@@ -51,14 +52,14 @@ static int epoll_reactor__add(int fd, struct esma_channel *ch)
 	ev.data.ptr = ch;
 
 	err = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);
-	if (-1 == err) {
-		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_ADD, %d): failed\n",
-				epollfd, __func__, fd);
+	if (unlikely(-1 == err)) {
+		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_ADD, %d) failed: %s\n",
+				epollfd, __func__, fd, strerror(errno));
 		return 1;
 	}
 
 	err = esma_fd_set_nonblocking(fd, 1);
-	if (err) {
+	if (unlikely(err)) {
 		esma_reactor_log_err("%s() - esma_fd_set_nonblocking(%d, true): failed\n",
 				__func__, fd);
 		return 1;
@@ -73,8 +74,8 @@ static int epoll_reactor__del(int fd, __attribute__((unused)) struct esma_channe
 	   int ret;
 
 	ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &ev);
-	if (-1 == ret) {
-		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_DEL, %d): %s\n",
+	if (unlikely(-1 == ret)) {
+		esma_reactor_log_sys("%s() - epoll_ctl(%d, EPOLL_CTL_DEL, %d): %s\n",
 				__func__, epollfd, fd, strerror(errno));
 		return 1;
 	}
@@ -108,9 +109,9 @@ static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 	ev.events = e;
 
 	ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev);
-	if (-1 == ret) {
-		esma_reactor_log_err("%s() - epoll_ctL(EPOLL_CTL_MOD, %d): failed\n",
-				__func__, fd);
+	if (unlikely(-1 == ret)) {
+		esma_reactor_log_sys("%s() - epoll_ctL(EPOLL_CTL_MOD, %d) failed: %s\n",
+				__func__, fd, strerror(errno));
 		return 1;
 	}
 
@@ -126,9 +127,9 @@ static void epoll_reactor__wait(void)
 	int nfds;
 
 	nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-	if (-1 == nfds) {
-		esma_reactor_log_err("%s() - epoll_wait(%d, EVENTS[%d]): failed\n",
-				__func__, epollfd, MAX_EVENTS);
+	if (unlikely(-1 == nfds)) {
+		esma_reactor_log_sys("%s() - epoll_wait(%d, EVENTS[%d]) failed: %s\n",
+				__func__, epollfd, MAX_EVENTS, strerror(errno));
 		return; /* exit(1) ?  */
 	}
 

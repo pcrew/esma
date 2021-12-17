@@ -18,9 +18,12 @@ def client_func(name):
     while True:
         exec_cnt = random.randint(1, 10)
         for i in range(exec_cnt):
-            print("Thread {} start working with client".format(name))
             sock = socket.socket()
-            sock.connect(('localhost', int(sys.argv[1])))
+
+            try:
+                sock.connect(('localhost', int(sys.argv[1])))
+            except:
+                break;
 
             #check connect
             time.sleep(0.1)
@@ -29,10 +32,10 @@ def client_func(name):
             try:
                 sock.send(hello.encode())
                 ret = sock.recv(len(hello))
-                if ret == hello.encode():
-                    print("Thread {} connect establishment succesfully".format(name))
+                if ret != hello.encode():
+                    break
             except:
-                print("Thread {} connection again".format(name))
+                print("Thread {} connecting again...".format(name))
                 break
 
             dg_cnt = random.randint(0, 100)
@@ -43,7 +46,10 @@ def client_func(name):
                 dg = ''.join(random.choice(letters) for i in range(dg_size))
                 dg += '\n'
 
-                sock.send(dg.encode())
+                try:
+                    sock.send(dg.encode())
+                except:
+                    break;
 
                 ret = sock.recv(len(dg))
                 if ret != dg.encode():

@@ -1,18 +1,27 @@
 
-#include "esma_alloc.h"
-
-#include <stdio.h> /* for debug */
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "esma_alloc.h"
+#include "esma_logger.h"
 #include "common/compiler.h"
 
-void *esma_malloc(u32 size)
+extern int errno;
+
+void *esma_malloc(size_t size)
 {
-	return malloc(size);
+	void *ret = malloc(size);
+
+	if (unlikely(NULL == ret)) {
+		esma_core_log_sys("malloc('%lld' bytes) failed: %s\n", size, strerror(errno));
+		return 0;
+	}
+
+	return ret;
 }
 
-void *esma_calloc(u32 items, u32 item_size)
+void *esma_calloc(size_t items, size_t item_size)
 {
 	void *data = NULL;
 
@@ -25,23 +34,27 @@ void *esma_calloc(u32 items, u32 item_size)
 	return data;
 }
 
-void *esma_realloc(void *prev, u32 size)
+void *esma_realloc(void *prev, size_t size)
 {
 	void *data = realloc(prev, size);
 
-	if (unlikely(NULL == data))
+	if (unlikely(NULL == data)) {
+		esma_core_log_sys("realloc(%p,'%lld' bytes) failed: %s\n", prev, size, strerror(errno));
 		return NULL;
+	}
 
 	return data;
 }
 
-void *esma_memalign(u32 alignment, u32 size)
+void *esma_memalign(size_t alignment, size_t size)
 {
 	void *data = NULL;
 	 int  err;
 
 	err = posix_memalign(&data, alignment, size);
-	if (err) {
+	if (unlikely(err)) {
+		esma_core_log_sys("posix_memalign(%p, aligment '%lld', '%lld' bytes) failed: %s\n",
+				data, alignment, size, strerror(errno));
 		return NULL;
 	}
 

@@ -32,13 +32,13 @@ static void poll_reactor__init(u32 nev, void *tools)
 
 	err = esma_array_init(&event_list, nev, sizeof(struct pollfd));
 	if (err) {
-		esma_reactor_log_ftl("%s() - can't init event_list\n", __func__);
+		esma_reactor_log_ftl("%s() - can't init events list\n", __func__);
 		exit(1);
 	}
 
 	err = esma_array_init(&channels, nev, sizeof(struct esma_channels *));
 	if (err) {
-		esma_reactor_log_ftl("%s() - can't init channels\n", __func__);
+		esma_reactor_log_ftl("%s() - can't init channels list\n", __func__);
 		exit(1);
 	}
 }
@@ -63,7 +63,7 @@ static int poll_reactor__add(int fd, struct esma_channel *ch)
 
 static int poll_reactor__del(int fd, struct esma_channel *ch)
 {
-	if (ch->index < 0)
+	if (unlikely(ch->index < 0))
 		return 1;
 
 	struct pollfd *event = event_list.items;
@@ -85,7 +85,7 @@ static int poll_reactor__mod(int fd, struct esma_channel *ch, u32 event)
 	struct pollfd *ev = esma_array_n(&event_list, ch->index);
 	u32 e = 0;
 
-	if (ch->index < 0)
+	if (unlikely(ch->index < 0))
 		return 1;
 
 	if (event & ESMA_POLLIN) {
@@ -107,11 +107,11 @@ static void poll_reactor__wait(void)
 
 	ready = poll(event_list.items, event_list.nitems, -1);
 
-	if (-1 == ready) {
-		if (EINTR == errno)
+	if (unlikely(-1 == ready)) {
+		if (unlikely(EINTR == errno))
 			return;
 
-		esma_reactor_log_ftl("%s() - poll error: %s\n", __func__, strerror(errno));
+		esma_reactor_log_sys("%s() - poll(nitems: %d) failed: %s\n", __func__, event_list.nitems, strerror(errno));
 		exit(1);
 	}
 
@@ -137,7 +137,7 @@ static void poll_reactor__wait(void)
 			e |= ESMA_POLLHUP;	
 
 		msg = esma_ring_buffer_put(msg_queue);
-		if (NULL == msg) {
+		if (unlikely(NULL == msg)) {
 			esma_reactor_log_ftl("%s() - can't put msg\n", __func__);
 			exit(1);
 		}

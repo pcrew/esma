@@ -111,11 +111,13 @@ __done:
 	return 0;
 }
 
+#if 0
 int slave_idle_leave(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - go to recv\n", __func__, me->name);
 	return 0;
 }
+#endif
 
 int slave_recv_enter(__unbox__)
 {
@@ -280,8 +282,10 @@ int slave_done_enter(__unbox__)
 	return 0;
 }
 
+#if 0
 int slave_done_leave(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - go to idle\n", __func__, me->name);
 	return 0;
 }
+#endif

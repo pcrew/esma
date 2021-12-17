@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "esma_alloc.h"
+#include "esma_logger.h"
 #include "esma_ring_buffer.h"
 
 #include "common/compiler.h"
@@ -29,7 +30,7 @@ int esma_ring_buffer_init(struct esma_ring_buffer *rb, u32 item_size, u32 cap)
 		return 1;
 
 	data = esma_calloc(item_size, cap);
-	if (unlikely(NULL == rb)) {
+	if (unlikely(NULL == data)) {
 		return 1;
 	}
 
@@ -62,6 +63,7 @@ struct esma_ring_buffer *esma_ring_buffer_new(u32 item_size, u32 cap)
 
 	rb = esma_malloc(sizeof(struct esma_ring_buffer));
 	if (unlikely(NULL == rb)) {
+		esma_core_log_err("%s() - can't allocate memory for ring buffer\n", __func__);
 		return NULL;
 	}
 
@@ -78,10 +80,7 @@ void *esma_ring_buffer_get(struct esma_ring_buffer *rb)
 {
 	int i;
 
-	if (unlikely(NULL == rb))
-		return NULL;
-
-	if (unlikely(0 == rb->size))
+	if (unlikely(NULL == rb || 0 == rb->size))
 		return NULL;
 
 	i = rb->tail;
@@ -100,11 +99,12 @@ static int _esma_ring_buffer_expand(struct esma_ring_buffer *rb)
 
 	data = esma_realloc(rb->data, rb->item_size * newcap);
 	if (unlikely(NULL == data)) {
+		esma_core_log_err("%s() - can't realocate memory for ring buffer's items\n", __func__);
 		return 1;
 	}
 
 	/* shift unread messages */
-	if (rb->head != rb->cap - 1) {
+	if (likely(rb->head != rb->cap - 1)) {
 		void *unread_msg = rb->data + rb->item_size * rb->head;
 		u32 delta = rb->cap - rb->head;
 		void *memory = unread_msg + delta;
@@ -127,7 +127,7 @@ void *esma_ring_buffer_put(struct esma_ring_buffer *rb)
 	if (unlikely(NULL == rb))
 		return NULL;
 
-	if (rb->size == rb->cap) {
+	if (unlikely(rb->size == rb->cap)) {
 		err = _esma_ring_buffer_expand(rb);
 		if (err) {
 			return NULL;

@@ -9,6 +9,8 @@
 #include "common/compiler.h"
 #include "common/macro_magic.h"
 
+extern int errno;
+
 static int _read_tick(struct esma_channel *ch)
 {
 	u64 res;
@@ -16,7 +18,7 @@ static int _read_tick(struct esma_channel *ch)
 
 	ret = read(ch->fd, &res, sizeof(u64));
 	if (unlikely(ret != sizeof(u64))) {
-		esma_dispatcher_log_err("%s()/%s - filed to read tick\n", __func__, ch->owner->name);
+		esma_dispatcher_log_sys("%s()/%s - read(fd: '%d') failed: %s\n", __func__, ch->owner->name, strerror(errno));
 		return 1;
 	}
 
@@ -30,7 +32,7 @@ static int _read_sign(struct esma_channel *ch)
 
 	ret = read(ch->fd, &ch->info.sign.si, n);
 	if (unlikely(n != ret)) {
-		esma_dispatcher_log_err("%s()/%s - failed to read sign\n", __func__, ch->owner->name);
+		esma_dispatcher_log_sys("%s()/%s - read(fd: '%d') failed: %s\n", __func__, ch->owner->name, strerror(errno));
 		return 1;
 	}
 
@@ -46,7 +48,7 @@ static int _read_data(struct esma_channel *ch)
 
 	ret = ioctl(ch->fd, FIONREAD, &ch->info.data.bytes_avail);
 	if (unlikely(-1 == ret)) {
-		esma_dispatcher_log_err("%s()/%s - failed to read data\n", __func__, ch->owner->name);
+		esma_dispatcher_log_sys("%s()/%s - read(fd: '%d') failed: %s\n", __func__, ch->owner->name, strerror(errno));
 		return 1;
 	}
 
@@ -55,6 +57,7 @@ static int _read_data(struct esma_channel *ch)
 
 static int _read_fallback(struct esma_channel *ch)
 {
+	esma_dispatcher_log_dbg("%s()/%s - read fallback\n", __func__, ch->owner->name);
 	return 0;
 }
 
@@ -224,9 +227,11 @@ __send_msg:
 		goto __fail;
 	}
 
-	err = state->leave(src, dst, ptr);
-	if (err) {
-		goto __fail;
+	if (state->leave) {
+		err = state->leave(src, dst, ptr);
+		if (err) {
+			goto __fail;
+		}
 	}
 
 	dst->current_state = trans->next_state;

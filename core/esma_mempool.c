@@ -40,16 +40,16 @@ static int _esma_mempool_new_addr(struct esma_mempool *mp)
 	u8 *blocks;
 
 	addr = esma_realloc(mp->addr, (mp->naddr + 1) * sizeof(u8 *));
-	if (addr == NULL) {
-		esma_core_log_sys("%s() - esma_realloc(): failed\n", __func__);
+	if (unlikely(NULL == addr)) {
+		esma_core_log_err("%s() - esma_realloc() failed\n", __func__);
 		return 1;
 	}
 
 	mp->addr = addr;
 
 	blocks = esma_malloc(NBLOCKS * mp->block_size);
-	if (NULL == blocks) {
-		esma_core_log_sys("%s() - esma_malloc(%ld bytes): failed\n",
+	if (unlikely(NULL == blocks)) {
+		esma_core_log_err("%s() - esma_malloc(%ld bytes) failed\n",
 				__func__, NBLOCKS * mp->block_size);
 		esma_free(addr);
 		return 1;
@@ -69,7 +69,7 @@ int esma_mempool_init(struct esma_mempool *mp, u32 block_size)
 {
 	int err;
 
-	if (NULL == mp) {
+	if (unlikely(NULL == mp)) {
 		LOG_MSG_INVALID_ARGS();
 		return 1;
 	}
@@ -82,7 +82,7 @@ int esma_mempool_init(struct esma_mempool *mp, u32 block_size)
 	mp->naddr = 0;
 
 	err = _esma_mempool_new_addr(mp);
-	if (err) {
+	if (unlikely(err)) {
 		esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
 		goto __fail;
 	}
@@ -100,14 +100,14 @@ struct esma_mempool *esma_mempool_new(u32 block_size)
 	   int err;
 
 	mp = esma_malloc(sizeof(struct esma_mempool));
-	if (NULL == mp) {
+	if (unlikely(NULL == mp)) {
 		esma_core_log_err("%s() - esma_malloc(%ld bytes): failed\n",
 				__func__, sizeof(struct esma_mempool));
 		return NULL;
 	}
 
 	err = esma_mempool_init(mp, block_size);
-	if (err) {
+	if (unlikely(err)) {
 		esma_core_log_err("%s() - esma_mempool_init(%ld): failed\n",
 				__func__, block_size);
 		esma_mempool_free(mp);
@@ -121,7 +121,7 @@ void *esma_mempool_get_block(struct esma_mempool *mp)
 {
 	struct block *ret;
 
-	if (NULL == mp) {
+	if (unlikely(NULL == mp)) {
 		LOG_MSG_INVALID_ARGS();
 		return NULL;
 	}
@@ -130,7 +130,7 @@ void *esma_mempool_get_block(struct esma_mempool *mp)
 		goto __ret_basket;		
 	}
 
-	if (NULL == mp->blocks) {
+	if (unlikely(NULL == mp->blocks)) {
 		int err = _esma_mempool_new_addr(mp);
 		if (err) {
 			esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
@@ -157,19 +157,20 @@ void *esma_mempool_get_block_n(struct esma_mempool *mp, int n)
 	void *block;
 	 int  err;
 
-	if (NULL == mp || n < 0) {
+	if (unlikely(NULL == mp || n < 0)) {
 		LOG_MSG_INVALID_ARGS();
 		return NULL;
 	}
 
-	if (n <= mp->nblocks)
+	if (likely(n <= mp->nblocks)) {
 		goto __return_n_blocks;
+	}
 
 	((struct block *) mp->blocks + mp->block_size * mp->nblocks)->next = mp->basket;
 	mp->basket = mp->blocks;
 
 	err = _esma_mempool_new_addr(mp);
-	if (err) {
+	if (unlikely(err)) {
 		esma_user_log_err("%s() - can't allocate memory for new page\n", __func__);
 		return NULL;
 	}
@@ -190,7 +191,7 @@ int esma_mempool_put_block(struct esma_mempool *mp, void *ptr)
 	struct block *basket;
 	struct block *tmp;
 
-	if (NULL == mp || NULL == ptr) {
+	if (unlikely(NULL == mp || NULL == ptr)) {
 		LOG_MSG_INVALID_ARGS();
 		return 1;
 	}
@@ -206,7 +207,7 @@ int esma_mempool_put_block(struct esma_mempool *mp, void *ptr)
 
 int esma_mempool_put_block_n(struct esma_mempool *mp, void *ptr, int n)
 {
-	if (NULL == mp || NULL == ptr || n < 0) {
+	if (unlikely(NULL == mp || NULL == ptr || n < 0)) {
 		LOG_MSG_INVALID_ARGS();
 		return 1;
 	}

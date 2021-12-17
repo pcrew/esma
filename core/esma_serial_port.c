@@ -88,10 +88,10 @@ int esma_serial_port_set_baudrate(struct esma_serial_port *port, u32 baudrate)
 {
 	struct termios termios;
 	speed_t speed;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -211,10 +211,10 @@ int esma_serial_port_set_baudrate(struct esma_serial_port *port, u32 baudrate)
 int esma_serial_port_set_databits(struct esma_serial_port *port, u8 databits)
 {
 	struct termios termios;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -247,10 +247,10 @@ int esma_serial_port_set_databits(struct esma_serial_port *port, u8 databits)
 int esma_serial_port_set_parity(struct esma_serial_port *port, u8 parity)
 {
 	struct termios termios;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -287,10 +287,10 @@ int esma_serial_port_set_parity(struct esma_serial_port *port, u8 parity)
 int esma_serial_port_set_stopbits(struct esma_serial_port *port, u8 stopbits)
 {
 	struct termios termios;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -316,10 +316,10 @@ int esma_serial_port_set_stopbits(struct esma_serial_port *port, u8 stopbits)
 int esma_serial_port_set_flow(struct esma_serial_port *port, u8 flow)
 {
 	struct termios termios;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -351,10 +351,10 @@ int esma_serial_port_set_flow(struct esma_serial_port *port, u8 flow)
 int esma_serial_port_set_raw_output(struct esma_serial_port *port)
 {
 	struct termios termios;
-	int err;
+	int off;
 
-	err = check_status(port);
-	if (err)
+	off = check_status(port);
+	if (off)
 		return 1;
 
 	GET_TERMIOS(port, &termios);
@@ -366,12 +366,9 @@ int esma_serial_port_set_raw_output(struct esma_serial_port *port)
 
 int esma_serial_port_close(struct esma_serial_port *port)
 {
-	if (NULL == port) {
+	if (unlikely(NULL == port || 0 == port->status)) {
 		return 0;
 	}
-
-	if (0 == port->status)
-		return 0;
 
 	port->status = 0;
 	return close(port->fd);
@@ -379,7 +376,7 @@ int esma_serial_port_close(struct esma_serial_port *port)
 
 int esma_serial_port_clear(struct esma_serial_port *port)
 {
-	if (NULL == port)
+	if (unlikely(NULL == port))
 		return 0;
 
 	memset(port, 0, sizeof(struct esma_serial_port));
