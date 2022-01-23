@@ -90,12 +90,16 @@ __push:
 	return item;
 }
 
-void *esma_array_pop(struct esma_array *arr)
+void esma_array_pop(struct esma_array *arr, void *to)
 {
-	  if (unlikely(NULL == arr || 0 == arr->nitems))
-		  return NULL;
+	  if (unlikely(NULL == arr || 0 == arr->nitems)) {
+		  to = NULL;
+		  return;
+	  }
 
-	  return arr->items + (--arr->nitems) * arr->item_size;
+	  memcpy(to, arr->items + (arr->nitems - 1) * arr->item_size, arr->item_size);
+	  memset(arr->items + (arr->nitems - 1) * arr->item_size, 0, arr->item_size);
+	  arr->nitems--;
 }
 
 void esma_array_free(struct esma_array *arr)

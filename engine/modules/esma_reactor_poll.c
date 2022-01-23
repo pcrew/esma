@@ -63,20 +63,20 @@ static int poll_reactor__add(int fd, struct esma_channel *ch)
 
 static int poll_reactor__del(int fd, struct esma_channel *ch)
 {
+	struct pollfd last_event;
+	struct esma_channel *last_channel;
+
 	if (unlikely(ch->index < 0))
 		return 1;
 
-	struct pollfd *event = event_list.items;
-	struct esma_channel **channel = channels.items;
+	esma_array_pop(&event_list, &last_event);
+	esma_array_pop(&channels, &last_channel);
 
-	event[ch->index] = event[event_list.nitems - 1];
-	channel[ch->index] = channel[channels.nitems - 1];
-	channel[ch->index]->index = ch->index;
+	((struct pollfd *) event_list.items)[ch->index] = last_event;
+	((struct esma_channel **) channels.items)[ch->index] = last_channel;
+	((struct esma_channel **) channels.items)[ch->index]->index = ch->index;
+
 	ch->index = -1;
-
-	event[--event_list.nitems] = (struct pollfd) {0};
-	channel[--channels.nitems] = NULL;
-
 	return 0;
 }
 

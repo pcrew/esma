@@ -37,7 +37,7 @@ static inline void *esma_array_get_head(struct esma_array *a)
 struct esma_array *esma_array_new(u32 capacity, u32 item_size);
    int		   esma_array_init(struct esma_array *arr, u32 capacity, u32 item_size);
   void		  *esma_array_push(struct esma_array *a);
-  void		  *esma_array_pop(struct esma_array *a);
+  void		   esma_array_pop(struct esma_array *a, void *to);
   void		   esma_array_free(struct esma_array *a);
 
   void		   esma_array_copy(struct esma_array *str, struct esma_array *dst);
