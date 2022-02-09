@@ -131,5 +131,6 @@ void esma_array_copy(struct esma_array *src, struct esma_array *dst)
 		return;
 	}
 
-	memcpy(src->items, dst->items, src->item_size * src->nitems);
+	memcpy(dst->items, src->items, src->item_size * src->nitems);
+	dst->nitems = src->nitems;
 }

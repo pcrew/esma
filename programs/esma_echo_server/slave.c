@@ -220,7 +220,7 @@ int slave_send_data_0(__unbox__)
 	struct esma_dbuf *dbuf = &si->dbuf;
 	   int n;
 
-	n = write(si->socket.fd, dbuf->loc, dbuf->cnt);
+	n = write(si->socket.fd, dbuf->pos, dbuf->cnt);
 
 	if (n < 0) {
 		if (EINTR == errno)

@@ -135,7 +135,7 @@ static int __master_init_slaves(struct esma *master)
 		}
 
 		err = esma_objpool_put(&mi->slaves, slave);
-		if (NULL == slave) {
+		if (err) {
 			esma_user_log_err("%s()/%s - esma_objpool_put('slaves'): failed\n", __func__, master->name);
 			goto __fail;
 		}

@@ -242,7 +242,10 @@ __send_msg:
 
 	err = state->enter(src, dst, ptr);
 	if (err) {
-		return state->leave(src, dst, ptr);
+		if (state->leave) {
+			state->leave(src, dst, ptr);
+		}
+		return err;
 	}
 
 	err = __start_channels(state);
