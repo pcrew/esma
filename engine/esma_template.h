@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #ifndef ESMA_TEMPLATE_H
 #define ESMA_TEMPLATE_H
@@ -9,46 +16,6 @@
 #include "core/esma_dbuf.h"
 #include "core/esma_array.h"
 #include "common/numeric_types.h"
-
-struct esma_state_template;
-struct esma_trans_template;
-struct esma_channel_template;
-
-struct esma_channel_template {
-	u32 type;
-	u64 data; /* for tick: interval_msec; for data: events; for sign: signal number */
-};
-
-/* filed status is must be. example: if you use trans number 0, 1 and 3 */
-struct esma_trans_template {
-	  char action_name[64];
-	   u32 action_code;
-	   u32 ch_type;
-	   u32 ch_data;
-	   int ch_periodic;
-	struct esma_state_template *next_state;
-};
-
-struct esma_state_template {
-	char name[64];
-
-	struct esma_array trans;
-	u32 ntrans;
-	u32 max_code;
-	u32 max_sign_code;
-	u32 max_data_code;
-	u32 max_tick_code;
-};
-
-struct esma_template {
-	char name[64];
-
-	struct esma_array states;
-	u32 nstates;
-
-	struct esma_array tm_channels;
-	u32 ntimers;
-};
 
 struct esma_template *esma_template_new(char *name);
    int esma_template_init(struct esma_template *tmpl, char *name);

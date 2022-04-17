@@ -47,11 +47,11 @@ int slave_init_enter(__unbox__)
 	me->data = si;
 
 	esma_user_log_nrm("%s()/%s - successfuly inited\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 0);
+	esma_machine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __fini:
-	esma_engine_send_msg(me, me, NULL, 3);
+	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -100,14 +100,14 @@ int slave_idle_1(__unbox__)
 		goto __done;
 	}
 
-	esma_engine_init_io_channel(me, si->socket.fd);
+	esma_machine_init_io_channel(me, si->socket.fd);
 
 	esma_user_log_nrm("%s()/%s - start working\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 0);
+	esma_machine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __done:
-	esma_engine_send_msg(me, me, NULL, 3);
+	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -126,7 +126,7 @@ int slave_recv_enter(__unbox__)
 
 	esma_dbuf_clear(dbuf);
 
-	esma_engine_mod_io_channel(me, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
+	esma_machine_mod_io_channel(me, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
 	esma_user_log_nrm("%s()/%s - start receiving from fd '%d'\n", __func__, me->name, me->io_channel.fd);
 	return 0;
 }
@@ -134,7 +134,7 @@ int slave_recv_enter(__unbox__)
 int slave_recv_tick_0(__unbox__)
 {
 	esma_user_log_inf("%s()/%s - recv data: timeout\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 1);
+	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -173,7 +173,7 @@ int slave_recv_data_0(__unbox__)
 	if (n == ba) {	/* read all data */
 	        dbuf->pos = dbuf->loc;	/* need for send */
 		esma_user_log_nrm("%s()/%s - all data received\n", __func__, me->name);
-		esma_engine_send_msg(me, me, NULL, 0);
+		esma_machine_send_msg(me, me, NULL, 0);
 		return 0;
 	}
 
@@ -183,14 +183,14 @@ int slave_recv_data_0(__unbox__)
 	return 0;
 
 __done:
-	esma_engine_send_msg(me, me, NULL, 1);
+	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
 int slave_recv_data_1(__unbox__)
 {
 	esma_user_log_err("%s()/%s - connection error\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 1);
+	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -203,14 +203,14 @@ int slave_recv_leave(__unbox__)
 int slave_send_enter(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - start sending\n", __func__, me->name);
-	esma_engine_mod_io_channel(me, ESMA_POLLOUT, ESMA_IO_EVENT_ENABLE);
+	esma_machine_mod_io_channel(me, ESMA_POLLOUT, ESMA_IO_EVENT_ENABLE);
 	return 0;
 }
 
 int slave_send_tick_0(__unbox__)
 {
 	esma_user_log_wrn("%s()/%s - send data: timeout\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 1);
+	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -230,8 +230,8 @@ int slave_send_data_0(__unbox__)
 	}
 
 	if (n == dbuf->cnt) {
-		esma_engine_mod_io_channel(me, 0, ESMA_IO_EVENT_DISABLE);
-		esma_engine_send_msg(me, me, NULL, 0);
+		esma_machine_mod_io_channel(me, 0, ESMA_IO_EVENT_DISABLE);
+		esma_machine_send_msg(me, me, NULL, 0);
 		return 0;
 	}
 
@@ -245,7 +245,7 @@ __send_error:
 
 	esma_dbuf_clear(dbuf);
 	esma_user_log_err("%s()/%s - sending error\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 1);
+	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
 }
 
@@ -266,7 +266,7 @@ int slave_done_enter(__unbox__)
 	struct esma_objpool *pool = si->restroom;
 	   int err;
 
-	esma_engine_free_io_channel(me);
+	esma_machine_free_io_channel(me);
 
 	esma_socket_close(&si->socket);
 	esma_socket_clear(&si->socket);
@@ -278,7 +278,7 @@ int slave_done_enter(__unbox__)
 	}
 
 	esma_user_log_nrm("%s()/%s - finished work with client\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 0);
+	esma_machine_send_msg(me, me, NULL, 0);
 	return 0;
 }
 

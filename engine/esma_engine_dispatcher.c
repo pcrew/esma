@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -69,7 +76,7 @@ static int (*_read_ch_data[])(struct esma_channel *ch) = {
 	[ESMA_CH_DATA] = _read_data,
 };
 
-static int __start_channels(struct state *state)
+static int __start_channels(struct esma *esma, struct state *state)
 {
 	int err;
 
@@ -77,14 +84,14 @@ static int __start_channels(struct state *state)
 		struct trans *trans = esma_array_n(&state->tick_trans, i);
 		struct esma_channel *ch = &trans->ch;
 
-		err = esma_engine_arm_tick_channel(ch);
+		err = esma_machine_arm_tick_channel(ch);
 		if (err) {
 			esma_dispatcher_log_ftl("%s()/%s - failed to arm tick channel; id: '%d'\n",
 					__func__, ch->owner->name, i);
 			exit(1);
 		}
 
-		err = esma_engine_mod_channel(ch, ESMA_POLLIN);
+		err = esma_machine_mod_channel(esma, ch, ESMA_POLLIN);
 		if (err) {
 			esma_dispatcher_log_ftl("%s()/%s - failed to mod tick channel; id: '%d'\n",
 					__func__, ch->owner->name, i);
@@ -96,7 +103,7 @@ static int __start_channels(struct state *state)
 		struct trans *trans = esma_array_n(&state->sign_trans, i);
 		struct esma_channel *ch = &trans->ch;
 
-		err = esma_engine_mod_channel(ch, ESMA_POLLIN);
+		err = esma_machine_mod_channel(esma, ch, ESMA_POLLIN);
 		if (err) {
 			esma_dispatcher_log_ftl("%s()/%s - failed to mod sign channel; id: '%d'\n",
 					__func__, ch->owner->name, i);
@@ -107,7 +114,7 @@ static int __start_channels(struct state *state)
 	return 0;
 }
 
-static int __stop_channels(struct state *state)
+static int __stop_channels(struct esma *esma, struct state *state)
 {
 	int err;
 
@@ -115,7 +122,7 @@ static int __stop_channels(struct state *state)
 		struct trans *trans = esma_array_n(&state->tick_trans, i);
 		struct esma_channel *ch = &trans->ch;
 
-		err = esma_engine_disarm_tick_channel(ch);
+		err = esma_machine_disarm_tick_channel(ch);
 		if (err) {
 			esma_dispatcher_log_bug("%s()/%s - failed to mod tick channel; fd: '%d'\n",
 					__func__, ch->owner->name, i);
@@ -127,7 +134,7 @@ static int __stop_channels(struct state *state)
 		struct trans *trans = esma_array_n(&state->tick_trans, i);
 		struct esma_channel *ch = &trans->ch;
 
-		err = esma_engine_mod_channel(ch, 0);
+		err = esma_machine_mod_channel(esma, ch, 0);
 		if (err) {
 			esma_dispatcher_log_bug("%s()/%s - failed to mod sign channel; fd: '%d'\n",
 					__func__, ch->owner->name, i);
@@ -220,7 +227,7 @@ __send_msg:
 	/* Meely section leave */
 
 	/* Moore section enter */
-	err = __stop_channels(state);
+	err = __stop_channels(dst, state);
 	if (err) {
 		esma_dispatcher_log_ftl("%s()/%s - __stop_channels('%s'): failed \n",
 				__func__, dst->name, state->name);
@@ -248,7 +255,7 @@ __send_msg:
 		return err;
 	}
 
-	err = __start_channels(state);
+	err = __start_channels(dst, state);
 	if (err) {
 		esma_dispatcher_log_ftl("%s()/%s - __start_channels('%s'): failed\n",
 				__func__, dst->name, state->name);

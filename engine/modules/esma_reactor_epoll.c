@@ -4,6 +4,7 @@
 #include <sys/epoll.h>
 
 #include "common/compiler.h"
+#include "common/macro_magic.h"
 
 #include "core/esma_fd.h"
 #include "core/esma_logger.h"
@@ -14,28 +15,20 @@
 
 extern int errno;
 
-static struct esma_engine_info *ei = NULL;
-static int epollfd = -1;
-
-static void epoll_reactor__init(u32 nevent, void *tools)
+static int epoll_reactor__init(union reactor *reactor, u32 nevent, void *tools)
 {
-	if (NULL != ei || -1 != epollfd) {
-		esma_reactor_log_err("%s() - double reactor initialization\n", __func__);
-		exit(1);
-	}
-
-	ei = tools;
-
-	epollfd = epoll_create(nevent);
-	if (-1 == epollfd) {
+	reactor->epoll.epollfd = epoll_create(nevent);
+	if (-1 == reactor->epoll.epollfd) {
 		esma_reactor_log_sys("%s() - epoll_create(nevent: '%d') failed: %s\n", __func__, nevent, strerror(errno));
-		exit(1);
+		return 1;
 	}
+
+	return 0;
 }
 
-static void epoll_reactor__fini(void)
+static void epoll_reactor__fini(union reactor *reactor)
 {
-	int err = close(epollfd);
+	int err = close(reactor->epoll.epollfd);
 
 	if (-1 == err) {
 		esma_reactor_log_sys("%s() - close('epollfd') failed: %s\n", __func__, strerror(errno));
@@ -43,18 +36,17 @@ static void epoll_reactor__fini(void)
 	}
 }
 
-static int epoll_reactor__add(int fd, struct esma_channel *ch)
+static int epoll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch)
 {
 	struct epoll_event ev = {0};
 	   int err;
 
-	ev.data.fd  = fd;
 	ev.data.ptr = ch;
 
-	err = epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);
+	err = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_ADD, fd, &ev);
 	if (unlikely(-1 == err)) {
 		esma_reactor_log_err("%s() - epoll_ctl(%d, EPOLL_CTL_ADD, %d) failed: %s\n",
-				epollfd, __func__, fd, strerror(errno));
+				reactor->epoll.epollfd, __func__, fd, strerror(errno));
 		return 1;
 	}
 
@@ -68,22 +60,22 @@ static int epoll_reactor__add(int fd, struct esma_channel *ch)
 	return 0;
 }
 
-static int epoll_reactor__del(int fd, __attribute__((unused)) struct esma_channel *ch)
+static int epoll_reactor__del(union reactor *reactor, int fd, __attribute__((unused)) struct esma_channel *ch)
 {
 	struct epoll_event ev = {0};
 	   int ret;
 
-	ret = epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &ev);
+	ret = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_DEL, fd, &ev);
 	if (unlikely(-1 == ret)) {
 		esma_reactor_log_sys("%s() - epoll_ctl(%d, EPOLL_CTL_DEL, %d): %s\n",
-				__func__, epollfd, fd, strerror(errno));
+				__func__, reactor->epoll.epollfd, fd, strerror(errno));
 		return 1;
 	}
 
 	return 0;
 }
 
-static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
+static int epoll_reactor__mod(union reactor *reactor, int fd, struct esma_channel *ch, u32 events)
 {
 	struct epoll_event ev = {0};
 	   int ret;
@@ -108,7 +100,7 @@ static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 	ev.data.ptr = ch;
 	ev.events = e;
 
-	ret = epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev);
+	ret = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_MOD, fd, &ev);
 	if (unlikely(-1 == ret)) {
 		esma_reactor_log_sys("%s() - epoll_ctL(EPOLL_CTL_MOD, %d) failed: %s\n",
 				__func__, fd, strerror(errno));
@@ -121,15 +113,19 @@ static int epoll_reactor__mod(int fd, struct esma_channel *ch, u32 events)
 #define MAX_EVENTS 32
 static struct epoll_event events[MAX_EVENTS];
 
-static void epoll_reactor__wait(void)
+static void epoll_reactor__wait(union reactor *reactor)
 {
-	struct esma_ring_buffer *msg_queue = &ei->msg_queue;
+#define ENGINE container_of(						\
+		container_of(reactor, struct esma_reactor, reactor),	\
+		struct esma_engine,					\
+		reactor)
+
 	int nfds;
 
-	nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+	nfds = epoll_wait(reactor->epoll.epollfd, events, MAX_EVENTS, -1);
 	if (unlikely(-1 == nfds)) {
 		esma_reactor_log_sys("%s() - epoll_wait(%d, EVENTS[%d]) failed: %s\n",
-				__func__, epollfd, MAX_EVENTS, strerror(errno));
+				__func__, reactor->epoll.epollfd, MAX_EVENTS, strerror(errno));
 		return; /* exit(1) ?  */
 	}
 
@@ -137,7 +133,7 @@ static void epoll_reactor__wait(void)
 		struct esma_message *msg;
 		u32 e = 0;
 
-		msg = esma_ring_buffer_put(msg_queue);
+		msg = ENGINE->queue.ops.put(&ENGINE->queue.queue);
 		if (unlikely(NULL == msg)) {
 			esma_reactor_log_err("%s() - can't put msg\n", __func__);
 			exit(1);
@@ -161,7 +157,7 @@ static void epoll_reactor__wait(void)
 	return;
 }
 
-api_definition(reactor, reactor_epoll) {
+api_definition(reactor_ops, reactor_epoll) {
 
 	.init = epoll_reactor__init,
 	.fini = epoll_reactor__fini,
@@ -172,3 +168,4 @@ api_definition(reactor, reactor_epoll) {
 
 	.wait = epoll_reactor__wait,
 };
+

@@ -35,16 +35,16 @@ static int __master_init(struct esma *master)
 		goto __fail;
 	}
 
-	mi->tick_0 = esma_get_channel(master, "work", 0, ESMA_CH_TICK);
-	mi->tick_1 = esma_get_channel(master, "work", 1, ESMA_CH_TICK);
-	if (NULL == mi->tick_0 || NULL == mi->tick_1) {
-		esma_user_log_err("%s()/%s - can't get channels\n", __func__, master->name);
-		exit(1);
+	mi->tick_0 = esma_machine_get_channel(master, "work", 0, ESMA_CH_TICK);
+	mi->tick_1 = esma_machine_get_channel(master, "work", 1, ESMA_CH_TICK);
+#if 0
+	if (mi->tick_0) {
+		esma_channel_set_interval(mi->tick_0, 500);
 	}
 
-#if 0
-	esma_channel_set_interval(mi->tick_0, 100);
-	esma_channel_set_interval(mi->tick_1, 1000ULL * 60ULL * 60ULL * 24ULL);	/* one day */
+	if (mi->tick_1) {
+		esma_channel_set_interval(mi->tick_1, 1000ULL * 60ULL * 60ULL * 24ULL);	/* one day */
+	}
 #endif
 
 	master->data = mi;
@@ -92,8 +92,8 @@ static int __master_init_socket(struct esma *master, u16 port)
 		goto __fail;
 	}
 
-	esma_engine_init_io_channel(master, mi->socket.fd);
-	esma_engine_mod_io_channel(master, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
+	esma_machine_init_io_channel(master, mi->socket.fd);
+	esma_machine_mod_io_channel(master, ESMA_POLLIN, ESMA_IO_EVENT_ENABLE);
 	master->io_channel.flags |= ESMA_LISTENING_CHANNEL;
 	return 0;
 
@@ -142,13 +142,13 @@ static int __master_init_slaves(struct esma *master)
 
 		sprintf(name, "slave_%d", i);
 
-		err = esma_engine_init_machine(slave, name, &slave_tmpl);
+		err = esma_machine_init(slave, master->engine, &slave_tmpl, name);
 		if (err) {
 			esma_user_log_err("%s()/%s - esma_engine_init_machine(slave: '%s'): failed\n", __func__, master->name, name);
 			goto __fail;
 		}
 
-		esma_engine_run_machine(slave, &mi->slaves);
+		esma_machine_run(slave, &mi->slaves);
 	}
 
 	return 0;
@@ -183,12 +183,12 @@ int master_init_enter(__unbox__)
 
 	esma_user_log_nrm("%s()/%s - successfuly inited\n", __func__, me->name);
 
-	esma_engine_send_msg(me, me, NULL, 0);
+	esma_machine_send_msg(me, me, NULL, 0);
 	return 0;
 
 __fini:
 	esma_user_log_ftl("%s()/%s - can't start\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 3);
+	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -232,7 +232,7 @@ int master_work_tick_0(__unbox__)
 int master_work_tick_3(__unbox__)
 {
 	esma_user_log_nrm("%s()/%s - timeout; go to fini\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 3);
+	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 
@@ -271,14 +271,14 @@ int master_work_data_0(__unbox__)
 		return 0;
 	}
 
-	esma_engine_send_msg(me, slave, &mi->socket, 1);
+	esma_machine_send_msg(me, slave, &mi->socket, 1);
 	return 0;
 }
 
 int master_work_data_1(__unbox__)
 {
 	esma_user_log_ftl("%s()/%s - have fail with io channel. Exiting\n", __func__, me->name);
-	esma_engine_send_msg(me, me, NULL, 3);
+	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
 

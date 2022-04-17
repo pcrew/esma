@@ -4,6 +4,7 @@
 #include <poll.h>
 
 #include "common/compiler.h"
+#include "common/macro_magic.h"
 
 #include "core/esma_fd.h"
 #include "core/esma_array.h"
@@ -14,54 +15,44 @@
 
 #include "engine/esma.h"
 
-static struct esma_engine_info *ei = NULL;
-
-struct esma_array event_list = {0};
-struct esma_array channels = {0};
-
-static void poll_reactor__init(u32 nev, void *tools)
+static int poll_reactor__init(union reactor *reactor, u32 nev, void *tools)
 {
 	int err;
 
-	if (NULL != ei) {
-		esma_reactor_log_ftl("%s() - double reactor initialization\n", __func__);
-		exit(0);
-	}
-
-	ei = tools;
-
-	err = esma_array_init(&event_list, nev, sizeof(struct pollfd));
+	err = esma_array_init(&reactor->poll.event_list, nev, sizeof(struct pollfd));
 	if (err) {
 		esma_reactor_log_ftl("%s() - can't init events list\n", __func__);
-		exit(1);
+		return err;
 	}
 
-	err = esma_array_init(&channels, nev, sizeof(struct esma_channels *));
+	err = esma_array_init(&reactor->poll.channels, nev, sizeof(struct esma_channels *));
 	if (err) {
 		esma_reactor_log_ftl("%s() - can't init channels list\n", __func__);
-		exit(1);
+		return err;
 	}
+
+	return 0;
 }
 
-static void poll_reactor__fini(void)
+static void poll_reactor__fini(union reactor *reactor)
 {
-	esma_array_free(&event_list);
-	esma_array_free(&channels);
+	esma_array_free(&reactor->poll.event_list);
+	esma_array_free(&reactor->poll.channels);
 }
 
-static int poll_reactor__add(int fd, struct esma_channel *ch)
+static int poll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch)
 {
-	struct pollfd *event = esma_array_push(&event_list);
-	struct esma_channel **channel = esma_array_push(&channels);
+	struct pollfd *event = esma_array_push(&reactor->poll.event_list);
+	struct esma_channel **channel = esma_array_push(&reactor->poll.channels);
 
 	event->fd = fd;
 	*channel = ch;
 	
-	ch->index = event_list.nitems - 1;
+	ch->index = reactor->poll.event_list.nitems - 1;
 	return 0;
 }
 
-static int poll_reactor__del(int fd, struct esma_channel *ch)
+static int poll_reactor__del(union reactor *reactor, int fd, struct esma_channel *ch)
 {
 	struct pollfd last_event;
 	struct esma_channel *last_channel;
@@ -69,20 +60,20 @@ static int poll_reactor__del(int fd, struct esma_channel *ch)
 	if (unlikely(ch->index < 0))
 		return 1;
 
-	esma_array_pop(&event_list, &last_event);
-	esma_array_pop(&channels, &last_channel);
+	esma_array_pop(&reactor->poll.event_list, &last_event);
+	esma_array_pop(&reactor->poll.channels, &last_channel);
 
-	((struct pollfd *) event_list.items)[ch->index] = last_event;
-	((struct esma_channel **) channels.items)[ch->index] = last_channel;
-	((struct esma_channel **) channels.items)[ch->index]->index = ch->index;
+	((struct pollfd *) reactor->poll.event_list.items)[ch->index] = last_event;
+	((struct esma_channel **) reactor->poll.channels.items)[ch->index] = last_channel;
+	((struct esma_channel **) reactor->poll.channels.items)[ch->index]->index = ch->index;
 
 	ch->index = -1;
 	return 0;
 }
 
-static int poll_reactor__mod(int fd, struct esma_channel *ch, u32 event)
+static int poll_reactor__mod(union reactor *reactor, int fd, struct esma_channel *ch, u32 event)
 {
-	struct pollfd *ev = esma_array_n(&event_list, ch->index);
+	struct pollfd *ev = esma_array_n(&reactor->poll.event_list, ch->index);
 	u32 e = 0;
 
 	if (unlikely(ch->index < 0))
@@ -100,24 +91,29 @@ static int poll_reactor__mod(int fd, struct esma_channel *ch, u32 event)
 	return 0;
 }
 
-static void poll_reactor__wait(void)
+static void poll_reactor__wait(union reactor *reactor)
 {
-	struct esma_ring_buffer *msg_queue = &ei->msg_queue;
+/// union reactor in struct esma_reactor; struct esma_reactor in esma_engine
+#define ENGINE container_of(                                            \
+		container_of(reactor, struct esma_reactor, reactor),    \
+		struct esma_engine,                                     \
+		reactor)
+
 	int ready;
 
-	ready = poll(event_list.items, event_list.nitems, -1);
+	ready = poll(reactor->poll.event_list.items, reactor->poll.event_list.nitems, -1);
 
 	if (unlikely(-1 == ready)) {
 		if (unlikely(EINTR == errno))
 			return;
 
-		esma_reactor_log_sys("%s() - poll(nitems: %d) failed: %s\n", __func__, event_list.nitems, strerror(errno));
+		esma_reactor_log_sys("%s() - poll(nitems: %d) failed: %s\n", __func__, reactor->poll.event_list.nitems, strerror(errno));
 		exit(1);
 	}
 
-	for (int i = 0; i < event_list.nitems && ready; i++) {
-		struct pollfd *pfd = esma_array_n(&event_list, i);
-		struct esma_channel **ch = esma_array_n(&channels, i);
+	for (int i = 0; i < reactor->poll.event_list.nitems && ready; i++) {
+		struct pollfd *pfd = esma_array_n(&reactor->poll.event_list, i);
+		struct esma_channel **ch = esma_array_n(&reactor->poll.channels, i);
 		struct esma_message *msg;
 		u32 revents;
 		u32 e = 0;
@@ -136,7 +132,7 @@ static void poll_reactor__wait(void)
 		else if (revents & POLLHUP)
 			e |= ESMA_POLLHUP;	
 
-		msg = esma_ring_buffer_put(msg_queue);
+		msg = ENGINE->queue.ops.put(&ENGINE->queue.queue);
 		if (unlikely(NULL == msg)) {
 			esma_reactor_log_ftl("%s() - can't put msg\n", __func__);
 			exit(1);
@@ -151,7 +147,7 @@ static void poll_reactor__wait(void)
 	}
 }
 
-api_definition(reactor, reactor_poll) {
+api_definition(reactor_ops, reactor_poll) {
 	.init = poll_reactor__init,
 	.fini = poll_reactor__fini,
 

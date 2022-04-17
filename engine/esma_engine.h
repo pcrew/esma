@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #ifndef ESMA_ENGINE_H
 #define ESMA_ENGINE_H
@@ -6,29 +13,30 @@
 #include "common/numeric_types.h"
 #include "common/api.h"
 
-struct esma *esma_engine_new_machine(struct esma_template *et, char *name);
-   int esma_engine_init_machine(struct esma *esma, char *name, struct esma_template *tmpl);
-   int esma_engine_del_machine(struct esma *esma);
-   int esma_engine_run_machine(struct esma *esma, void *dptr);
-  void esma_engine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
+/**
+ * @brief Initialize esma_engine.
+ * @param [in] engine		Pointer to the engine.
+ * @param [in] reactor_name	Pointer to the reactor name.
+ * @param [in] msg_queue_name	Pointer to the message queue name.
+ * @param [in] lock type	Lock type.
+ * @return 0 - if esma_engine successfuly initialized; 1 - otherwise.
+ */
+int esma_engine_init(struct esma_engine *engine, char *reactor_name, char *msg_queue_name, u32 lock_type);
 
-   int esma_engine_copy_machine(struct esma *src, struct esma *dst, int (*copy_f)(const void *data_src, void *data_dst));
-   int esma_engone_restart_machine(struct esma *esma);
+/**
+ * @brief execute esma_engine.
+ * @param [in] engine		Pointer to the engine.
+ * @details The function handles messages that are in the esma_msg_queue.
+ * @return 0 - if esma_engine successfuly executed; 1 - otherwise.
+ */
+int esma_engine_exec(struct esma_engine *engine);
 
-   int esma_engine_init(char *reactor_name);
-   int esma_engine_exec(void);
-  void esma_engine_wait(void);
-
-   int esma_engine_init_io_channel(struct esma *self, int fd);
-   int esma_engine_free_io_channel(struct esma *self);
-   int esma_engine_mod_io_channel(struct esma *self, u32 events, int action);
-
-   int esma_engine_mod_channel(struct esma_channel *ch, u32 events);
-   int esma_engine_arm_tick_channel(struct esma_channel *ch);
-   int esma_engine_disarm_tick_channel(struct esma_channel *ch);
-
-/* helper functions */
-struct state *esma_find_state_by_name(struct esma *esma, char *name);
-struct esma_channel *esma_get_channel(struct esma *esma, char *state_name, int id, u32 type);
+/**
+ * @brief Waiting for a new events in the esma_engine.
+ * @param [in] engine		Pointer to the engine.
+ * @details The function wait in the I/O multiplexer.
+ * @return 0 - if multiplexer return 0; 1 - otherwise.
+ */
+void esma_engine_wait(struct esma_engine *engine);
 
 #endif

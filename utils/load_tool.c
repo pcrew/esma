@@ -7,15 +7,7 @@
 
 void *load_tool(void *handle, char *symname)
 {
-	void *tool;
-	char *err;
+	void *tool = dlsym(handle, symname);
 
-	tool = dlsym(handle, symname);
-	 err = dlerror();
-
-	if (err) {
-		return NULL;
-	}
-
-	return tool;
+	return dlerror() ? NULL : tool;
 }

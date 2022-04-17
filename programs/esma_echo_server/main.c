@@ -40,6 +40,8 @@ struct esma_dbuf master_tmpl_dbuf;
 struct esma_template tmpl;
 struct esma master;
 
+struct esma_engine engine;
+
 #define LOGGING_FLAGS	ESMA_LOG_USER 		|\
 			ESMA_LOG_CORE 		|\
 			ESMA_LOG_ENGINE		|\
@@ -97,13 +99,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	err = esma_engine_init("reactor_epoll");
+	err = esma_engine_init(&engine, "reactor_epoll", "msg_queue_ring_buffer", ESMA_QUEUE_WITHOUT_LOCK);
 	if (err) {
 		esma_user_log_ftl("esma_engine_init(0): failed\n", "");
 		return 1;
 	}
 
-	err = esma_engine_init_machine(&master, "master", &tmpl);
+	err = esma_machine_init(&master, &engine, &tmpl, "master");
 	if (err) {
 		esma_user_log_ftl("esma_engine_init_machine('master'): failed\n", "");
 		printf("failed\n");
@@ -112,14 +114,14 @@ int main(int argc, char **argv)
 
 	esma_user_log_nrm("procces '%d' has been started\n", pid);
 
-	esma_engine_run_machine(&master, &port);
+	esma_machine_run(&master, &port);
 
 	while (1) {
-		ret = esma_engine_exec();
+		ret = esma_engine_exec(&engine);
 		if (ret)
 			break;
 
-		esma_engine_wait();
+		esma_engine_wait(&engine);
 	}
 
 	return 0;

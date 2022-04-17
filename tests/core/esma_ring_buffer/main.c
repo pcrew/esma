@@ -18,7 +18,7 @@ int main()
 	struct esma_ring_buffer rb;
 	   int err;
 
-	err = esma_ring_buffer_init(&rb, sizeof(struct test), 8);
+	err = esma_ring_buffer_init(&rb, sizeof(struct test), 8, ESMA_RING_BUFFER_WITHOUT_LOCK);
 	if (err) {
 		printf("esma_ring_buffer_init() - failed\n");
 		return 1;
