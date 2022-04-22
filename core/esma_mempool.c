@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -22,7 +29,7 @@ struct block {
 static void _esma_mempool_init_blocks(u8 *addr, u32 blocks_qty, u32 block_size)
 {
 	struct block *b;
-	    u8 *a = addr;
+	u8 *a = addr;
 
 	while (--blocks_qty) {
 		b = (struct block *) a;
@@ -36,10 +43,9 @@ static void _esma_mempool_init_blocks(u8 *addr, u32 blocks_qty, u32 block_size)
 
 static int _esma_mempool_new_addr(struct esma_mempool *mp)
 {
-	u8 **addr;
+	u8 **addr = esma_realloc(mp->addr, (mp->naddr + 1) * sizeof(u8 *));
 	u8 *blocks;
 
-	addr = esma_realloc(mp->addr, (mp->naddr + 1) * sizeof(u8 *));
 	if (unlikely(NULL == addr)) {
 		esma_core_log_err("%s() - esma_realloc() failed\n", __func__);
 		return 1;

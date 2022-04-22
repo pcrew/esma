@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #ifndef ESMA_LOGGER_H
 #define ESMA_LOGGER_H
@@ -22,10 +29,24 @@
 
 #define ESMA_MAX_REPORT_STR	2048
 
+/*
+ * @brief Value of log level.
+ */
 extern u32 esma_log_level;
+
+/*
+ * @brief Value of log flags.
+ */
 extern u32 esma_log_flags;
 
+/*
+ * @brief Sets log level
+ */
 void esma_logger_set_log_level(u32 level);
+
+/*
+ * @brief Sets log flags
+ */
 void esma_logger_set_log_flags(u32 flags);
 
 #define esma_user_log_nrm(fmt, ...)		esma_console_log(ESMA_LOG_USER, ESMA_LOG_NRM, fmt, __VA_ARGS__)
@@ -82,6 +103,13 @@ void esma_logger_set_log_flags(u32 flags);
 #define esma_dispatcher_log_ftl(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_FTL, fmt, __VA_ARGS__)
 #define esma_dispatcher_log_bug(fmt, ...)	esma_console_log(ESMA_LOG_DISPATCHER, ESMA_LOG_BUG, fmt, __VA_ARGS__)
 
+/*
+ * @brief Prints log into console.
+ * @param [in] flags	Logging flags.
+ * @param [in] level	Logging level.
+ * @param [in] fmt	Formated text.
+ * @param [in] ...	Arguments.
+ */
 void esma_console_log(int flags, int level, char *fmt, ...);
 
 #endif

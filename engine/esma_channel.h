@@ -24,8 +24,8 @@
 #define ESMA_IO_EVENT_DISABLE        1
 
 /**
- * @brief Get the interval value in millisecond from struct esma_channel
- * @param [in] ch The pointer to struct esma_channel.
+ * @brief Get the interval value in millisecond.
+ * @param [in] ch The pointer to the esma_channel.
  * @return Interval in milliseconds.
  */
 static inline  u64 esma_channel_get_interval(struct esma_channel *ch)
@@ -34,9 +34,9 @@ static inline  u64 esma_channel_get_interval(struct esma_channel *ch)
 }
 
 /**
- * @brief Set the interval value in millisecond to struct esma_channel
- * @param ch [out] The pointer to struct esma_channel.
- * @param time [in] The time interval in milliseconds
+ * @brief Set the interval value in millisecond.
+ * @param ch [out] The pointer to the esma_channel.
+ * @param time [in] The time interval in milliseconds.
  */
 static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
 {
@@ -44,8 +44,8 @@ static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
 }
 
 /**
- * @brief Get the number of bytes available for reading
- * @param ch [in] The pointer to struct esma_channel.
+ * @brief Get the number of bytes available for reading.
+ * @param ch [in] The pointer to the esma_channel.
  * @return number of bytes available for reading.
  */
 static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
@@ -54,9 +54,9 @@ static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
 }
 
 /**
- * @brief Convert esma_channel type to string
- * @param ch_type [in] The esma_channel type
- * @return string containing the name of the esma_channel
+ * @brief Convert channel type to string.
+ * @param ch_type [in] The channel type.
+ * @return name string of the input channel.
  */
 static inline char *esma_channel_type_to_str(u32 ch_type)
 {
@@ -72,7 +72,7 @@ static inline char *esma_channel_type_to_str(u32 ch_type)
 	case ESMA_CH_SIGN:
 		return "ESMA_CH_SIGN";
 	default:
-		return "invalid ch_type";
+		return "invalid channel type";
 	}
 }
 

@@ -163,16 +163,7 @@ int esma_engine_dispatcher_send(struct esma_message *msg)
 	}
 
 	state = dst->current_state;
-	if (unlikely(NULL == state)) {
-		esma_dispatcher_log_bug("%s()/%s - current state is NULL\n", __func__, dst->name);
-		goto __fail;
-	}
-
 	trans = esma_array_n(&state->trans, code);
-	if (NULL == trans) {
-		esma_dispatcher_log_bug("%s()/%s - trans[%d] is NULL\n", __func__, dst->name, code);
-		goto __fail;
-	}
 
 	goto __send_msg;
 
@@ -213,8 +204,6 @@ __read_os_msg:
 		esma_dispatcher_log_bug("%s()/%s - can't read channel data\n", __func__, dst->name);
 		goto __fail;
 	}
-
-	goto __send_msg;
 
 __send_msg:
 

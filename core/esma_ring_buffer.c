@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -138,17 +145,16 @@ void esma_ring_buffer_free(struct esma_ring_buffer *rb)
 
 static int _expand(struct esma_ring_buffer *rb)
 {
-	void *data;
 	 int  newcap = rb->cap << 1;
+	void *data = esma_realloc(rb->data, rb->item_size * newcap);
 
-	data = esma_realloc(rb->data, rb->item_size * newcap);
 	if (unlikely(NULL == data)) {
-		esma_core_log_err("%s() - can't realocate memory for ring buffer's items\n", __func__);
+		esma_core_log_err("%s() - can't reallocate memory for ring buffer's items\n", __func__);
 		return 1;
 	}
 
 	/* shift unread messages */
-	if (likely(rb->head != rb->cap - 1)) {
+	if (rb->head != rb->cap - 1) {
 		void *unread_msg = rb->data + rb->item_size * rb->head;
 		u32 delta = rb->cap - rb->head;
 		void *memory = unread_msg + delta;
@@ -160,7 +166,6 @@ static int _expand(struct esma_ring_buffer *rb)
 	rb->data = data;
 	rb->mask = newcap - 1;
 	rb->cap  = newcap;
-
 	return 0;
 }
 
@@ -176,21 +181,17 @@ static ESMA_INLINE void *_get(struct esma_ring_buffer *rb)
 	rb->size--;
 	rb->tail++;
 	rb->tail &= rb->mask;
-
 	return rb->data + rb->item_size * i;
 }
 
 
 static ESMA_INLINE void *_put(struct esma_ring_buffer *rb)
 {
-	int err;
-
 	if (unlikely(NULL == rb))
 		return NULL;
 
 	if (unlikely(rb->size == rb->cap)) {
-		err = _expand(rb);
-		if (err) {
+		if (_expand(rb)) {
 			return NULL;
 		}
 	}

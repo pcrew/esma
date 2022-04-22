@@ -41,7 +41,6 @@ int esma_engine_new_timerfd(void)
 	if (-1 == fd) {
 		esma_engine_log_sys("%s() - timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC): failed('%s')\n",
 			__func__, strerror(errno));
-		return -1;
 	}
 
 	return fd;
@@ -72,9 +71,8 @@ int esma_engine_arm_timerfd(int fd, u64 interval_msec, int type)
 int esma_engine_disarm_timerfd(int fd)
 {
 	struct itimerspec itspec = {0};
-	int ret;
+	int ret = timerfd_settime(fd, 0, &itspec, NULL);
 
-	ret = timerfd_settime(fd, 0, &itspec, NULL);
 	if (-1 == ret) {
 		esma_engine_log_sys("%s() - timerfd_settime(%d, 0): failed('%s')\n", __func__, fd, strerror(errno));
 	}

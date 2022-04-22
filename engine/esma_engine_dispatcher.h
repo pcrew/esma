@@ -9,9 +9,9 @@
 #ifndef ESMA_ENGINE_DISPATCHER_H
 #define ESMA_ENGINE_DISPATCHER_H
 
-/**@brief Send esma_message
- *  @param [in] msg The pointer to the struct esma_message.
- *  @return 0 if send succesfull, 1 - otherwise.
+/**@brief Send message between two esma machines.
+ *  @param [in] msg The pointer to message.
+ *  @return 0 if message sent succesfull, 1 - otherwise.
  */
 int esma_engine_dispatcher_send(struct esma_message *msg);
 

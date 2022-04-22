@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -78,11 +85,4 @@ void esma_dbuf_free(struct esma_dbuf *dbuf)
 		return;
 
 	esma_free(dbuf->loc);
-}
-
-void esma_dbuf_clear(struct esma_dbuf *buf)
-{
-	memset(buf->loc, 0, buf->len);
-	buf->cnt = 0;
-	buf->pos = buf->loc;
 }

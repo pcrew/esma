@@ -15,11 +15,9 @@
 
 #include "engine/esma.h"
 
-static int poll_reactor__init(union reactor *reactor, u32 nev, void *tools)
+static int poll_reactor__init(union reactor *reactor, u32 nev)
 {
-	int err;
-
-	err = esma_array_init(&reactor->poll.event_list, nev, sizeof(struct pollfd));
+	int err = esma_array_init(&reactor->poll.event_list, nev, sizeof(struct pollfd));
 	if (err) {
 		esma_reactor_log_ftl("%s() - can't init events list\n", __func__);
 		return err;
@@ -99,10 +97,7 @@ static void poll_reactor__wait(union reactor *reactor)
 		struct esma_engine,                                     \
 		reactor)
 
-	int ready;
-
-	ready = poll(reactor->poll.event_list.items, reactor->poll.event_list.nitems, -1);
-
+	int ready = poll(reactor->poll.event_list.items, reactor->poll.event_list.nitems, -1);
 	if (unlikely(-1 == ready)) {
 		if (unlikely(EINTR == errno))
 			return;

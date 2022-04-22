@@ -13,7 +13,6 @@
 
 #include "esma_engine_dispatcher.h"
 #include "esma_engine_common.h"
-#include "esma_engine_info.h"
 #include "esma_engine_fd.h"
 #include "esma_template.h"
 #include "esma_channel.h"

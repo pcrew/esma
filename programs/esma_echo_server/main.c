@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	err = esma_engine_init(&engine, "reactor_epoll", "msg_queue_ring_buffer", ESMA_QUEUE_WITHOUT_LOCK);
+	err = esma_engine_init(&engine, "reactor_poll", "msg_queue_ring_buffer", ESMA_QUEUE_WITHOUT_LOCK);
 	if (err) {
 		esma_user_log_ftl("esma_engine_init(0): failed\n", "");
 		return 1;

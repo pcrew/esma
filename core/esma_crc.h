@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #ifndef ESMA_CRC_H
 #define ESMA_CRC_H
@@ -46,8 +53,34 @@
 #define CRC32_JAMCRC	0x07
 #define CRC32_XFER	0x08
 
+/**
+ * @brief Caclulates crc8.
+ * @param [in] d	Pointer to data.
+ * @param [in] len	Data size.
+ * @param [out] crc	CRC8.
+ * @param [in] name	CRC name.
+ * @return 0 - if crc calculated successfuly; 1 - otherwise.
+ */
 int esma_crc8(u8 *d, u32 len, u8 *crc, u32 name);
+
+/**
+ * @brief Caclulates crc16.
+ * @param [in] d	Pointer to data.
+ * @param [in] len	Data size.
+ * @param [out] crc	CRC16.
+ * @param [in] name	CRC name.
+ * @return 0 - if crc calculated successfuly; 1 - otherwise.
+ */
 int esma_crc16(u8 *d, u32 len, u16 *crc, u32 name);
+
+/**
+ * @brief Caclulates crc32.
+ * @param [in] d	Pointer to data.
+ * @param [in] len	Data size.
+ * @param [out] crc	CRC32.
+ * @param [in] name	CRC name.
+ * @return 0 - if crc calculated successfuly; 1 - otherwise.
+ */
 int esma_crc32(u8 *d, u32 len, u32 *crc, u32 name);
 
 #endif

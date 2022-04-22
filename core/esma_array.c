@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <string.h>
 #include <stdlib.h>
@@ -11,9 +18,8 @@
 
 int esma_array_init(struct esma_array *arr, u32 capacity, u32 item_size)
 {
-	void *items;
+	void *items = esma_calloc(capacity, item_size);
 
-	items = esma_calloc(capacity, item_size);
 	if (unlikely(NULL == items)) {
 		esma_core_log_err("%s() - esma_calloc(%ld, %ld): failed\n", __func__, capacity, item_size);
 		return 1;
@@ -23,16 +29,14 @@ int esma_array_init(struct esma_array *arr, u32 capacity, u32 item_size)
 	arr->nitems = 0;
 	arr->item_size = item_size;
 	arr->capacity = capacity;
-
 	return 0;
 }
 
 struct esma_array *esma_array_new(u32 capacity, u32 item_size)
 {
-	struct esma_array *arr = NULL;
+	struct esma_array *arr = esma_malloc(sizeof(struct esma_array));
 	   int err;
 
-	arr = esma_malloc(sizeof(struct esma_array));
 	if (unlikely(NULL == arr)) {
 		esma_core_log_err("%s() - esma_malloc(%d bytes): failed\n", __func__, sizeof(struct esma_array));
 		return NULL;
@@ -50,12 +54,9 @@ struct esma_array *esma_array_new(u32 capacity, u32 item_size)
 
 static int _esma_array_expand(struct esma_array *arr)
 {
-	void *items = NULL;
-	 u32  new_cap;
+	 u32  new_cap = arr->capacity << 1;
+	void *items = esma_realloc(arr->items, new_cap * arr->item_size);
 
-	new_cap = arr->capacity << 1;
-
-	items = esma_realloc(arr->items, new_cap * arr->item_size);
 	if (unlikely(NULL == items)) {
 		esma_core_log_err("%s() - esma_realloc(%ld): failed; prev size: %ld\n",
 				__func__, new_cap * arr->item_size, arr->capacity* arr->item_size);

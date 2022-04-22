@@ -11,12 +11,12 @@
 
 #include "common/numeric_types.h"
 
-#define __INIT__	0
-#define __FINI__	1
+#define __INIT__	0	/**< Index of init state in the array. */
+#define __FINI__	1	/**< Index of fini state in the array. */
 
-#define ESMA_POLLIN	0x01
-#define ESMA_POLLOUT	0x02
-#define ESMA_POLLHUP	0x04
-#define ESMA_POLLERR	0x08
+#define ESMA_POLLIN	0x01	/**< Event flag notifying about the reading. */
+#define ESMA_POLLOUT	0x02	/**< Event flag notifying about the writing. */
+#define ESMA_POLLHUP	0x04	/**< Event flag notifying about connection close. */
+#define ESMA_POLLERR	0x08	/**< Event flag notifying about error. */
 
 #endif

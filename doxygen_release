@@ -1,0 +1,29 @@
+#!/bin/bash
+
+CONFIG="PROJECT_NAME = $PACKAGE"
+CONFIG=$CONFIG" PROJECT_NUMBER = $PACKAGE_VERSION"
+
+touch Doxyfile || (echo "can't touch Dixyflie" && exit 1)
+
+echo "DOXYFILE_ENCODING = UTF-8" >> Doxyfile
+echo "PROJECT_NAME      = $PACKAGE" >> Doxyfile
+echo "PROJECT_NUMBER    = $PACKAGE_VERSION" >> Doxyfile
+echo "RECURSIVE         = YES" >> Doxyfile
+echo "INPUT             = core engine utils common" >> Doxyfile
+echo "OUTPUT_DIRECTORY  = doc" >> Doxyfile
+echo "TAB_SIZE          = 8" >> Doxyfile
+echo "OUTPUT_LANGUAGE   = English" >> Doxyfile
+echo "ABBREVIATE_BRIEF  = \"The \$name class\" \\
+                    \"The \$name widget\" \\
+		    \"The \$name file\" \\
+		    is \\
+		    provides \\
+		    specifies \\
+		    contains \\
+		    represents \\
+		    a \\
+		    an \\
+		    the">> Doxyfile
+
+doxygen
+rm Doxyfile

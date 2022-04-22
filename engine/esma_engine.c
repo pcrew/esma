@@ -32,10 +32,8 @@ int esma_engine_init(struct esma_engine *ngn, char *reactor_name, char *msg_queu
 	struct msg_queue_ops *msg_queue_ops;
 	int err;
 
-	if (NULL == reactor_name) {
-		esma_engine_log_inf("%s() - nameless reactor; using 'reactor_epll'\n", __func__);
-		reactor_name = "reactor_epoll";
-	}
+	reactor_name = reactor_name == NULL ? "reactor_epoll" : reactor_name;
+	msg_queue_name = msg_queue_name == NULL ? "msg_queue_ring_buffer" : msg_queue_name;
 
 	reactor_ops = get_api(reactor_name);
 	if (NULL == reactor_ops) {
@@ -50,7 +48,7 @@ int esma_engine_init(struct esma_engine *ngn, char *reactor_name, char *msg_queu
 	}
 
 	ngn->reactor.ops = *reactor_ops;
-	err = ngn->reactor.ops.init(&ngn->reactor.reactor, 32, NULL);
+	err = ngn->reactor.ops.init(&ngn->reactor.reactor, 32);
 	if (err) {
 		esma_engine_log_ftl("%s() - can't initialize reactor '%s'.\n", __func__, reactor_name);
 		exit(1);

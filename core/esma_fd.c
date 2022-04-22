@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Copyright 2019 - present, Dmitry Lotakov
+ *
+ * This source code is licensed under the BSD-3-Clause license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include <fcntl.h>
 #include <errno.h>
@@ -10,10 +17,9 @@
 
 int esma_fd_set_nonblocking(int fd, int yes)
 {
+	int flags = fcntl(fd, F_GETFL, 0);
 	int err;
-	int flags = 0;
 
-	flags = fcntl(fd, F_GETFL, 0);
 	if (unlikely(flags < 0)) {
 		esma_core_log_sys("%s() - fcntl(fd: '%d', F_GETFL, 0) failed: %s\n",
 				__func__, fd, strerror(errno));
@@ -38,10 +44,9 @@ int esma_fd_set_nonblocking(int fd, int yes)
 
 int esma_fd_set_closexec(int fd)
 {
+	int flags = fcntl(fd, F_GETFD, 0);
 	int err;
-	int flags = 0;
-
-	flags = fcntl(fd, F_GETFD, 0);
+	
 	if (unlikely(flags < 0)) {
 		esma_core_log_sys("%s() - fcntl(fd: '%d', F_GETFD, 0) failed: %s\n",
 				__func__, fd, strerror(errno));
