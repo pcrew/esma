@@ -47,8 +47,7 @@ static int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 
 	ch->fd = fd;
 
-	esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, ch);
-	esma->engine->reactor.ops.mod(&esma->engine->reactor.reactor, fd, ch, 0);
+	esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, ch, 0);
 	return 0;
 }
 
@@ -68,8 +67,7 @@ static int _esma_set_sign_trans(struct trans *trans, struct esma *esma)
 
 	ch->fd = fd;
 
-	esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, ch);
-	esma->engine->reactor.ops.mod(&esma->engine->reactor.reactor, fd, ch, 0);
+	esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, ch, 0);
 	return 0;
 }
 
@@ -265,7 +263,7 @@ int esma_machine_init_io_channel(struct esma *esma, int fd)
 	esma->io_channel.fd = fd;
 	esma->io_channel.owner = esma;
 
-	err = esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, &esma->io_channel);
+	err = esma->engine->reactor.ops.add(&esma->engine->reactor.reactor, fd, &esma->io_channel, 0);
 	if (err) {
 		esma_engine_log_bug("%s()/%s - can't add fd '%d' to reactor\n",
 				__func__, esma->name, fd);

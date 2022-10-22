@@ -36,7 +36,32 @@ static void epoll_reactor__fini(union reactor *reactor)
 	}
 }
 
-static int epoll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch)
+ESMA_INLINE static int __mod__(union reactor *reactor, int fd, struct epoll_event *ev, u32 events)
+{
+	int err;
+	u32 e = 0;
+
+	if (events & ESMA_POLLIN) {
+		e |= EPOLLIN;
+	}
+
+	if (events & ESMA_POLLOUT) {
+		e |= EPOLLOUT;
+	}
+
+	ev->events = e;
+
+	err = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_MOD, fd, ev);
+	if (unlikely(-1 == err)) {
+		esma_reactor_log_sys("%s() - epoll_ctL(EPOLL_CTL_MOD, %d) failed: %s\n",
+				__func__, fd, strerror(errno));
+		return 1;
+	}
+
+	return 0;
+}
+
+static int epoll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch, u32 events)
 {
 	struct epoll_event ev = { .data.ptr = ch };
 	int err = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_ADD, fd, &ev);
@@ -52,6 +77,9 @@ static int epoll_reactor__add(union reactor *reactor, int fd, struct esma_channe
 				__func__, fd);
 		return 1;
 	}
+
+	if (events)
+		return __mod__(reactor, fd, &ev, events);
 
 	return 0;
 }
@@ -72,27 +100,7 @@ static int epoll_reactor__del(union reactor *reactor, int fd, __attribute__((unu
 static int epoll_reactor__mod(union reactor *reactor, int fd, struct esma_channel *ch, u32 events)
 {
 	struct epoll_event ev = { .data.ptr = ch };
-	   int err;
-	   u32 e = 0;
-
-	if (events & ESMA_POLLIN) {
-		e |= EPOLLIN;
-	}
-
-	if (events & ESMA_POLLOUT) {
-		e |= EPOLLOUT;
-	}
-
-	ev.events = e;
-
-	err = epoll_ctl(reactor->epoll.epollfd, EPOLL_CTL_MOD, fd, &ev);
-	if (unlikely(-1 == err)) {
-		esma_reactor_log_sys("%s() - epoll_ctL(EPOLL_CTL_MOD, %d) failed: %s\n",
-				__func__, fd, strerror(errno));
-		return 1;
-	}
-
-	return 0;
+	return __mod__(reactor, fd, &ev, events);
 }
 
 #define MAX_EVENTS 32

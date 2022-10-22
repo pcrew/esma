@@ -161,9 +161,10 @@ struct esma_reactor {
 		 * @param [out] reactor	Pointer to the reactor union.
 		 * @param [in] fd	File descriptor.
 		 * @param [in] ch	Pointer to the channel.
+		 * @param [in] events	Events set mask.
 		 * @return 0 - if fd successfuly added; 1 - otherwise.
 		 */
-		int (*add)(union reactor *reactor, int fd, struct esma_channel *ch);
+		int (*add)(union reactor *reactor, int fd, struct esma_channel *ch, u32 events);
 
 		/**
 		 * @brief The pointer to the function that delete fd from the reactor.

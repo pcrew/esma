@@ -38,13 +38,28 @@ static void poll_reactor__fini(union reactor *reactor)
 	esma_array_free(&reactor->poll.channels);
 }
 
-static int poll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch)
+ESMA_INLINE static void __mod__(struct pollfd *event, u32 events)
+{
+	u32 ev = 0;
+
+	if (events & ESMA_POLLIN)
+		ev |= POLLIN;
+	if (events & ESMA_POLLOUT)
+		ev |= POLLOUT;
+
+	event->events = ev;
+}
+
+static int poll_reactor__add(union reactor *reactor, int fd, struct esma_channel *ch, u32 events)
 {
 	struct pollfd *event = esma_array_push(&reactor->poll.event_list);
 	struct esma_channel **channel = esma_array_push(&reactor->poll.channels);
 
 	event->fd = fd;
 	*channel = ch;
+
+	if (events)
+		__mod__(event, events);
 	
 	ch->index = reactor->poll.event_list.nitems - 1;
 	return 0;
@@ -69,23 +84,14 @@ static int poll_reactor__del(union reactor *reactor, int fd, struct esma_channel
 	return 0;
 }
 
-static int poll_reactor__mod(union reactor *reactor, int fd, struct esma_channel *ch, u32 event)
+static int poll_reactor__mod(union reactor *reactor, int fd, struct esma_channel *ch, u32 events)
 {
 	struct pollfd *ev = esma_array_n(&reactor->poll.event_list, ch->index);
-	u32 e = 0;
 
 	if (unlikely(ch->index < 0))
 		return 1;
 
-	if (event & ESMA_POLLIN) {
-		e |= POLLIN;
-	}
-
-	if (event & ESMA_POLLOUT) {
-		e |= POLLOUT;
-	}
-
-	ev->events = e;
+	__mod__(ev, events);
 	return 0;
 }
 
