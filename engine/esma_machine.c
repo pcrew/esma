@@ -140,9 +140,9 @@ struct esma *esma_machine_new(struct esma_engine *ngn, struct esma_template *tmp
 		return NULL;
 	}
 
-	esma = esma_malloc(sizeof(struct esma));
+	esma = esma_mempool_get_block(&ngn->machine_pool);
 	if (unlikely(NULL == esma)) {
-		esma_engine_log_err("%s() - can't allocate memory for new machine.\n", __func__);
+		esma_engine_log_err("%s() - can't get memory for new machine.\n", __func__);
 		return NULL;
 	}
 
@@ -198,12 +198,16 @@ int esma_machine_restart(struct esma *esma)
 
 int esma_machine_del(struct esma *esma)
 {
+	struct esma_engine *ngn;
 	struct state *states;
+	int err;
+
 	if (unlikely(NULL == esma)) {
 		esma_engine_log_err("%s() - esma is NULL.\n", __func__);
 		return 1;
 	}
 
+	ngn = esma->engine;
 	states = esma->states.items;
 
 	if (esma->current_state != &states[__FINI__]) {
@@ -217,7 +221,13 @@ int esma_machine_del(struct esma *esma)
 		esma_array_free(&state->sign_trans);
 		esma_array_free(&state->tick_trans);
 	}
-	esma_array_free(&esma->states);
+
+	err = esma_mempool_put_block(&ngn->machine_pool, esma);
+	if (unlikely(err)) {
+		esma_engine_log_err("%s() - can't put esma in the machine pool.\n", __func__);
+		return 1;
+	}
+
 	return 0;
 }
 

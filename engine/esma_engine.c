@@ -61,6 +61,12 @@ int esma_engine_init(struct esma_engine *ngn, char *reactor_name, char *msg_queu
 		exit(1);
 	}
 
+	err = esma_mempool_init(&ngn->machine_pool, sizeof(struct esma));
+	if (err) {
+		esma_engine_log_ftl("%s() - can't initialize machine pool.\n", __func__);
+		exit(1);
+	}
+
 	return 0;
 }
 

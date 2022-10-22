@@ -13,6 +13,7 @@
 
 #include "core/esma_array.h"
 #include "core/esma_ring_buffer.h"
+#include "core/esma_mempool.h"
 
 #include "common/api.h"
 #include "common/numeric_types.h"
@@ -214,9 +215,10 @@ struct esma_msg_queue {
  * @brief Structure to represent the esma engine.
  */
 struct esma_engine {
-	struct esma_reactor reactor;	/**< Reactor. */
-	struct esma_msg_queue queue;	/**< Queue. */
-	u32 engine_id;			/**< Engine id. */
+	struct esma_reactor reactor;		/**< Reactor. */
+	struct esma_msg_queue queue;		/**< Queue. */
+	struct esma_mempool machine_pool;	/**< Machine pool. */
+	u32 engine_id;				/**< Engine id. */
 };
 
 struct esma_state_template;
