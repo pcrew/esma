@@ -124,27 +124,16 @@ static int __master_init_slaves(struct esma *master)
 	}
 
 	for (int i = 0; i < NSLAVES; i++) {
-		struct esma *slave = NULL;
+		struct esma *slave;
 		  char name[16];
 		   int err;
 
-		slave = esma_malloc(sizeof(struct esma));
-		if (NULL == slave) {
-			esma_user_log_err("%s()/%s - esma_malloc('slave'): failed\n", __func__, master->name);
-			goto __fail;
-		}
+		sprintf(name, "slave_%d", i);
+		slave = esma_machine_new(master->engine, &slave_tmpl, name);;
 
 		err = esma_objpool_put(&mi->slaves, slave);
 		if (err) {
 			esma_user_log_err("%s()/%s - esma_objpool_put('slaves'): failed\n", __func__, master->name);
-			goto __fail;
-		}
-
-		sprintf(name, "slave_%d", i);
-
-		err = esma_machine_init(slave, master->engine, &slave_tmpl, name);
-		if (err) {
-			esma_user_log_err("%s()/%s - esma_engine_init_machine(slave: '%s'): failed\n", __func__, master->name, name);
 			goto __fail;
 		}
 
@@ -159,25 +148,10 @@ __fail:
 
 int master_init_enter(__unbox__)
 {
-	int err;
 	u16 port = *(u16 *) dptr;
 
-	err = __master_init(me);
-	if (err) {
-		esma_user_log_err("%s()/%s - master_init(): failed\n", __func__, me->name);
-		goto __fini;
-	}
-
-	err = __master_init_socket(me, port);
-	if (err) {
-		esma_user_log_err("%s()/%s - master_init_socket(): failed\n", __func__, me->name);
-		goto __fini;
-	}
-	esma_user_log_inf("%s()/%s - create socket on port '%hu'\n", __func__, me->name, port);
-
-	err = __master_init_slaves(me);
-	if (err) {
-		esma_user_log_err("%s()/%s - master_init_slaves(): failed\n", __func__, me->name);
+	if (__master_init(me) || __master_init_socket(me, port) || __master_init_slaves(me)) {
+		printf("%s()/%s - Can't initialize state machine.\n", __func__, me->name);
 		goto __fini;
 	}
 
@@ -220,10 +194,7 @@ int master_work_tick_0(__unbox__)
 {
 	static int tick = 1;
 
-	if (tick)
-		esma_user_log_nrm("%s()/%s - tick!\n", __func__, me->name);
-	else
-		esma_user_log_nrm("%s()/%s - tack!\n", __func__, me->name);
+	esma_user_log_nrm("%s()/%s - %s!\n", __func__, me->name, tick ? "tick" : "tack");
 
 	tick ^= 1;
 	return 0;
@@ -252,11 +223,10 @@ int master_work_sign_1(__unbox__)
 int master_work_data_0(__unbox__)
 {
 	struct master_info *mi = me->data;
-	struct esma *slave;
+	struct esma *slave = esma_objpool_get(&mi->slaves);;
 
 	esma_user_log_nrm("%s()/%s - new client\n", __func__, me->name);
-	slave = esma_objpool_get(&mi->slaves);
-	if (NULL == slave) {
+	if (unlikely(NULL == slave)) {
 		struct esma_socket client = {0};
 		   int err;
 

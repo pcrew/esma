@@ -296,7 +296,7 @@ static int _new_esma_trans_template(struct esma_template_internal *eti)
 }
 
 #define log_dbg_msg(...) printf(__VA_ARGS__);
-static int _decode_dbuf(char *line, struct esma_template *et)
+static int _decode_buffer(char *line, struct esma_template *et)
 {
 	struct esma_template_internal eti;
 	char *p = line;
@@ -810,20 +810,12 @@ static int _decode_dbuf(char *line, struct esma_template *et)
 					eti.ch_data = SIGCONT;
 				}
 
-				if (str_4_cmp(p, 'K', 'I', 'L', 'L')) {
-					eti.ch_data = SIGKILL;
-				}
-
 				if (str_4_cmp(p, 'P', 'I', 'P', 'E')) {
 					eti.ch_data = SIGPIPE;
 				}
 
 				if (str_4_cmp(p, 'Q', 'U', 'I', 'T')) {
 					eti.ch_data = SIGQUIT;
-				}
-
-				if (str_4_cmp(p, 'S', 'T', 'O', 'P')) {
-					eti.ch_data = SIGSTOP;
 				}
 
 				if (str_4_cmp(p, 'T', 'E', 'R', 'M')) {
@@ -1032,18 +1024,21 @@ int esma_template_set_by_path(struct esma_template *et, char *path)
 	dbuf.cnt = dbuf.len;
 	dbuf.pos = dbuf.loc;
 
-	err = esma_template_set_by_dbuf(et, &dbuf);
+	err = esma_template_set_by_str(et, (char *) dbuf.loc, dbuf.cnt);
 	esma_dbuf_free(&dbuf);
 
 	return err;
 }
 
-int esma_template_set_by_dbuf(struct esma_template *et, struct esma_dbuf *dbuf)
+int esma_template_set_by_str(struct esma_template *et, char *string, u32 len)
 {
-	if (NULL == et || NULL == dbuf)
+	if (NULL == et || NULL == string)
 		return 1;
 
-	dbuf->pos = dbuf->loc;
+	if (string[len] != 0) {
+		esma_engine_log_ftl("%s() - invalid string: expected '0' at and of the string.\n", __func__);
+		return 1;
+	}
 
-	return _decode_dbuf((char *) dbuf->loc, et);
+	return _decode_buffer(string, et);
 }

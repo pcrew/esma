@@ -10,7 +10,33 @@
 #define ESMA_MACHINE_H
 
 #include "esma.h"
+
+#include "core/esma_logger.h"
+
 #include "common/numeric_types.h"
+
+/**
+ * @brief Send message between two esma machines.
+ * @param [in] src	Pointer to the source esma machine.
+ * @param [in] dst	Pointer to the destination esma machine.
+ * @param [in] dptr	Pointer to the data for delivering.
+ * @param [in] code	Transaction code for destination esma machine..
+ * @return 0 - if message successfuly delivered; 1 - otherwise.
+ */
+ESMA_INLINE void esma_machine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code)
+{
+	struct esma_message *msg = dst->engine->queue.ops.put(&dst->engine->queue.queue);
+
+	if (unlikely(NULL == msg)) {
+		esma_engine_log_err("%s() - can't send message from '%s' to '%s'\n", __func__, src->name, dst->name);
+		exit(1);
+	}
+
+	msg->src = src;
+	msg->dst = dst;
+	msg->ptr = dptr;
+	msg->code = code;
+}
 
 /**
  * @brief Create new esma machine.
@@ -20,16 +46,6 @@
  * @return 0 - if esma machine successfuly created; 1 - otherwise.
  */
 struct esma *esma_machine_new(struct esma_engine *engine, struct esma_template *template, char *name);
-
-/**
- * @brief Initialize esma machine.
- * @param [out] esma	Pointer to the esma machine.
- * @param [in] engine	Pointer to the esma engine.
- * @param [in] template	Pointer to the esma machine template.
- * @param [in] name	esma machine name.
- * @return 0 - if esma machine successfuly created; 1 - otherwise.
- */
-int esma_machine_init(struct esma *esma, struct esma_engine *engine, struct esma_template *template, char *name);
 
 /**
  * @brief Delete esma machine.
@@ -44,16 +60,6 @@ int esma_machine_del(struct esma *esma);
  * @return 0 - if esma machine successfuly ran; 1 - otherwise.
  */
 int esma_machine_run(struct esma *esma, void *dptr);
-
-/**
- * @brief Send message between two esma machines.
- * @param [in] src	Pointer to the source esma machine.
- * @param [in] dst	Pointer to the destination esma machine.
- * @param [in] dptr	Pointer to the data for delivering.
- * @param [in] code	Transaction code for destination esma machine..
- * @return 0 - if message successfuly delivered; 1 - otherwise.
- */
-void esma_machine_send_msg(struct esma *src, struct esma *dst, void *dptr, u32 code);
 
 /**
  * @brief Restart esma machine.

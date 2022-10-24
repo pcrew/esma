@@ -22,12 +22,16 @@ struct slave_info {
 	struct esma_objpool *restroom;
 };
 
+ESMA_INLINE int __all_data_recieved(struct esma_dbuf *dbuf)
+{
+	return dbuf->loc[dbuf->cnt - 1] == '\n' ? 1 : 0;
+}
+
 int slave_init_enter(__unbox__)
 {
-	struct slave_info *si;
+	struct slave_info *si = esma_malloc(sizeof(struct slave_info));
 	   int err;
 
-	si = esma_malloc(sizeof(struct slave_info));
 	if (NULL == si) {
 		esma_user_log_err("%s()/%s - esma_malloc('slave_info'): failed\n", __func__, me->name);
 		goto __fini;
@@ -55,12 +59,6 @@ __fini:
 	return 0;
 }
 
-int slave_init_leave(__unbox__)
-{
-	esma_user_log_nrm("%s()/%s - go to idle\n", __func__, me->name);
-	return 0;
-}
-
 int slave_fini_enter(__unbox__)
 {
 	struct slave_info *si = me->data;
@@ -69,12 +67,6 @@ int slave_fini_enter(__unbox__)
 
 	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
 	return 1;
-}
-
-int slave_fini_leave(__unbox__)
-{
-	esma_user_log_nrm("%s()/%s\n", __func__, me->name);
-	return 0;
 }
 
 int slave_idle_enter(__unbox__)
@@ -89,7 +81,7 @@ int slave_idle_1(__unbox__)
 	struct esma_socket *server = dptr;
 	   int err;
 
-	if (NULL == dptr) {
+	if (NULL == server) {
 		esma_user_log_err("%s()/%s dptr from %s is NULL\n", __func__, me->name, from->name);
 		goto __done;
 	}
@@ -110,14 +102,6 @@ __done:
 	esma_machine_send_msg(me, me, NULL, 3);
 	return 0;
 }
-
-#if 0
-int slave_idle_leave(__unbox__)
-{
-	esma_user_log_nrm("%s()/%s - go to recv\n", __func__, me->name);
-	return 0;
-}
-#endif
 
 int slave_recv_enter(__unbox__)
 {
@@ -170,8 +154,7 @@ int slave_recv_data_0(__unbox__)
 
 	dbuf->cnt += n;
 
-	if (n == ba) {	/* read all data */
-	        dbuf->pos = dbuf->loc;	/* need for send */
+	if (n == ba && __all_data_recieved(dbuf)) {	/* read all data */
 		esma_user_log_nrm("%s()/%s - all data received\n", __func__, me->name);
 		esma_machine_send_msg(me, me, NULL, 0);
 		return 0;
@@ -189,6 +172,11 @@ __done:
 
 int slave_recv_data_1(__unbox__)
 {
+	struct slave_info *si = me->data;
+	struct esma_dbuf *dbuf = &si->dbuf;
+
+	dbuf->pos = dbuf->loc;
+
 	esma_user_log_err("%s()/%s - connection error\n", __func__, me->name);
 	esma_machine_send_msg(me, me, NULL, 1);
 	return 0;
@@ -281,11 +269,3 @@ int slave_done_enter(__unbox__)
 	esma_machine_send_msg(me, me, NULL, 0);
 	return 0;
 }
-
-#if 0
-int slave_done_leave(__unbox__)
-{
-	esma_user_log_nrm("%s()/%s - go to idle\n", __func__, me->name);
-	return 0;
-}
-#endif

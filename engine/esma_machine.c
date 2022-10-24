@@ -31,10 +31,6 @@ static int _esma_set_tick_trans(struct trans *trans, struct esma *esma)
 	struct esma_channel *ch = &trans->ch;
 	   int fd;
 
-	if (0 == ch->type) {
-		return 0;
-	}
-
 	ch->hard = 1;
 	ch->owner = esma;
 	ch->info.tick.interval_msec = ch->raw_data;
@@ -106,7 +102,7 @@ __fail:
 	return 1;
 }
 
-int esma_machine_init(struct esma *esma, struct esma_engine *ngn, struct esma_template *tmpl, char *name)
+static int _esma_machine_init(struct esma *esma, struct esma_engine *ngn, struct esma_template *tmpl, char *name)
 {
 	int err;
 
@@ -132,7 +128,7 @@ int esma_machine_init(struct esma *esma, struct esma_engine *ngn, struct esma_te
 
 struct esma *esma_machine_new(struct esma_engine *ngn, struct esma_template *tmpl, char *name)
 {
-	struct esma *esma = NULL;
+	struct esma *esma;
 	   int err;
 
 	if (unlikely(NULL == tmpl)) {
@@ -146,11 +142,10 @@ struct esma *esma_machine_new(struct esma_engine *ngn, struct esma_template *tmp
 		return NULL;
 	}
 
-	err = esma_machine_init(esma, ngn, tmpl, name);
+	err = _esma_machine_init(esma, ngn, tmpl, name);
 	if (err) {
 		esma_engine_log_err("%s()/%s - can't init machine.\n", __func__, tmpl->name);
 		esma_machine_del(esma);
-		esma_free(esma);
 		return NULL;
 	}
 
@@ -229,23 +224,6 @@ int esma_machine_del(struct esma *esma)
 	}
 
 	return 0;
-}
-
-void esma_machine_send_msg(struct esma *src, struct esma *dst, void *ptr, u32 code)
-{
-	struct esma_message *msg;
-
-	msg = dst->engine->queue.ops.put(&dst->engine->queue.queue);
-	if (NULL == msg) {
-		esma_engine_log_err("%s() - can't send message from '%s' to '%s'\n",
-				__func__, src->name, dst->name);
-		exit(1);
-	}
-
-	msg->src = src;
-	msg->dst = dst;
-	msg->ptr = ptr;
-	msg->code = code;
 }
 
 int esma_machine_init_io_channel(struct esma *esma, int fd)
@@ -404,14 +382,12 @@ struct esma_channel *esma_machine_get_channel(struct esma *esma, char *state_nam
 		break;
 
 	default:
-		esma_engine_log_dbg("%s()/%s - can't get channel '%s'\n", __func__, esma->name, esma_channel_type_to_str(type));
-		break;
-	}
-
-	if (unlikely(NULL == trans)) {
-		esma_engine_log_dbg("%s()/%s - can't get channel '%s'\n", __func__, esma->name, esma_channel_type_to_str(type));
-		return NULL;
+		goto __channel_not_found;
 	}
 
 	return &trans->ch;
+
+__channel_not_found:
+	esma_engine_log_dbg("%s()/%s - can't get channel '%s'\n", __func__, esma->name, esma_channel_type_to_str(type));
+	return NULL;
 }

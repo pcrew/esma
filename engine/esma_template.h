@@ -47,12 +47,13 @@ void esma_template_free(struct esma_template *template);
 int esma_template_set_by_path(struct esma_template *template, char *path);
 
 /**
- * @brief Set esma machine template by esma_dbuf.
+ * @brief Set esma machine template by c string.
  * @param [out] template	Pointer to esma machine template.
- * @param [in] dbuf		Pointer to dbuf.
+ * @param [in] string		Pointer to the c string.
+ * @param [len] len		The lenght of the string..
  * @return 0 - if esma template successfuly seted; 1 - otherwise.
  */
-int esma_template_set_by_dbuf(struct esma_template *tmpl, struct esma_dbuf *dbuf);
+int esma_template_set_by_str(struct esma_template *tmpl, char *string, u32 len);
 
 /**
  * @brief Print esma template.

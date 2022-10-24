@@ -28,7 +28,7 @@
  * @param [in] ch The pointer to the esma_channel.
  * @return Interval in milliseconds.
  */
-static inline  u64 esma_channel_get_interval(struct esma_channel *ch)
+ESMA_INLINE u64 esma_channel_get_interval(struct esma_channel *ch)
 {
 	return ch->info.tick.interval_msec;
 }
@@ -38,7 +38,7 @@ static inline  u64 esma_channel_get_interval(struct esma_channel *ch)
  * @param ch [out] The pointer to the esma_channel.
  * @param time [in] The time interval in milliseconds.
  */
-static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
+ESMA_INLINE void esma_channel_set_interval(struct esma_channel *ch, u64 time)
 {
 	ch->info.tick.interval_msec = time;
 }
@@ -48,7 +48,7 @@ static inline void esma_channel_set_interval(struct esma_channel *ch, u64 time)
  * @param ch [in] The pointer to the esma_channel.
  * @return number of bytes available for reading.
  */
-static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
+ESMA_INLINE u32 esma_channel_bytes_avail(struct esma_channel *ch)
 {
 	return ch->info.data.bytes_avail;
 }
@@ -58,7 +58,7 @@ static inline u32 esma_channel_bytes_avail(struct esma_channel *ch)
  * @param ch_type [in] The channel type.
  * @return name string of the input channel.
  */
-static inline char *esma_channel_type_to_str(u32 ch_type)
+ESMA_INLINE char *esma_channel_type_to_str(u32 ch_type)
 {
 	switch (ch_type) {
 	case ESMA_CH_EMPTY:

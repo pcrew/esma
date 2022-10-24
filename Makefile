@@ -9,8 +9,8 @@ export PACKAGE PACKAGE_VERSION
 
 CC = $(CROSS_COMPILE)gcc
 STRIP = $(CROSS_COMPILE)strip
-CFLAGS += -Wall -I$(INCDIR) -O2 -D_FILE_OFFSET_BITS=64
-#CFLAGS += -Wall -Os -I$(INCDIR) -g -D_FILE_OFFSET_BITS=64
+CFLAGS += -Wall -I$(INCDIR) -O2
+#CFLAGS += -Wall -Os -I$(INCDIR) -g
 
 export CC STRIP CFLAGS TOPDIR INCDIR
 
@@ -34,6 +34,7 @@ documentation:
 	@rm -vf Doxyfile > /dev/null || (echo "failed" && exit 1)
 	@./doxygen_release $> /dev/null || (echo "failed" && exit 1)
 	@echo "done"
+
 clean:
 	@rm -vf `find . -name *.o`
 	@rm -vf `find . -name *.sw?`

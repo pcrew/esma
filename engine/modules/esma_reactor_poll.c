@@ -15,17 +15,17 @@
 
 #include "engine/esma.h"
 
-static int poll_reactor__init(union reactor *reactor, u32 nev)
+static int poll_reactor__init(union reactor *reactor, u32 nevents)
 {
-	int err = esma_array_init(&reactor->poll.event_list, nev, sizeof(struct pollfd));
+	int err = esma_array_init(&reactor->poll.event_list, nevents, sizeof(struct pollfd));
 	if (err) {
-		esma_reactor_log_ftl("%s() - can't init events list\n", __func__);
+		esma_reactor_log_ftl("%s() - can't init list for %d events.\n", __func__, nevents);
 		return err;
 	}
 
-	err = esma_array_init(&reactor->poll.channels, nev, sizeof(struct esma_channels *));
+	err = esma_array_init(&reactor->poll.channels, nevents, sizeof(struct esma_channels *));
 	if (err) {
-		esma_reactor_log_ftl("%s() - can't init channels list\n", __func__);
+		esma_reactor_log_ftl("%s() - can't init list for %d channels.\n", __func__, nevents);
 		return err;
 	}
 
@@ -108,7 +108,7 @@ static void poll_reactor__wait(union reactor *reactor)
 		if (unlikely(EINTR == errno))
 			return;
 
-		esma_reactor_log_sys("%s() - poll(nitems: %d) failed: %s\n", __func__, reactor->poll.event_list.nitems, strerror(errno));
+		esma_reactor_log_sys("%s() - poll(nevents: %d) failed: %s\n", __func__, reactor->poll.event_list.nitems, strerror(errno));
 		exit(1);
 	}
 

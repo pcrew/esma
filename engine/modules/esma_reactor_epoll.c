@@ -15,11 +15,11 @@
 
 extern int errno;
 
-static int epoll_reactor__init(union reactor *reactor, u32 nevent)
+static int epoll_reactor__init(union reactor *reactor, u32 nevents)
 {
-	reactor->epoll.epollfd = epoll_create(nevent);
+	reactor->epoll.epollfd = epoll_create(nevents);
 	if (-1 == reactor->epoll.epollfd) {
-		esma_reactor_log_sys("%s() - epoll_create(nevent: '%d') failed: %s\n", __func__, nevent, strerror(errno));
+		esma_reactor_log_sys("%s() - epoll_create(nevents: '%d') failed: %s\n", __func__, nevents, strerror(errno));
 		return 1;
 	}
 
@@ -121,7 +121,7 @@ static void epoll_reactor__wait(union reactor *reactor)
 	}
 
 	for (int i = 0; i < nfds; i++) {
-		struct esma_message *msg = ENGINE->queue.ops.put(&ENGINE->queue.queue);;
+		struct esma_message *msg = ENGINE->queue.ops.put(&ENGINE->queue.queue);
 		u32 e = 0;
 
 		if (unlikely(NULL == msg)) {
