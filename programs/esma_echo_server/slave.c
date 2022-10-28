@@ -24,7 +24,7 @@ struct slave_info {
 
 ESMA_INLINE int __all_data_recieved(struct esma_dbuf *dbuf)
 {
-	return dbuf->loc[dbuf->cnt - 1] == '\n' ? 1 : 0;
+	return esma_dbuf_get_last(dbuf) == '\n' ? 1 : 0;
 }
 
 int slave_init_enter(__unbox__)

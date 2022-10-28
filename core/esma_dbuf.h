@@ -64,10 +64,19 @@ void esma_dbuf_free(struct esma_dbuf *dbuf);
  * @param [out] dbuf	Pointer to the data buffer.
  * @datails function sets cnt to zero and pos to loc.
  */
-static ESMA_INLINE void esma_dbuf_clear(struct esma_dbuf *dbuf)
+ESMA_INLINE void esma_dbuf_clear(struct esma_dbuf *dbuf)
 {
 	dbuf->cnt = 0;
 	dbuf->pos = dbuf->loc;
+}
+
+/**
+ * @brief Returns last symbol in data buffer.
+ * @param [in] dbuf	Pointer to the data buffer.
+ */
+ESMA_INLINE u8 esma_dbuf_get_last(struct esma_dbuf *dbuf)
+{
+	return dbuf->loc[dbuf->cnt - 1];
 }
 
 #endif
